@@ -11,7 +11,7 @@ bot = commands.Bot(command_prefix="!", intents=intents)
 tree = bot.tree
 
 API_TOKEN = 'dfce079aa89e7256f53f6f2fe2328c128a584467f5afcbc5f5d451c581879768'
-LINK_ORIGINAL = 'https://danvnstore.site/callback.php'
+LINK_ORIGINAL = 'https://danvnstore.site/key.php'
 
 # Danh sách admin khởi tạo với admin chính được bảo vệ
 admin_ids = {1364169704943652924}
@@ -292,4 +292,4 @@ async def listadmin(interaction: discord.Interaction):
     await interaction.response.send_message(f"**Danh sách admin:**\n{admins_list}", ephemeral=True)
 
 
-bot.run("MTM3Mzk3NTM4OTg0NzgxODM4Mw.G9iTuZ.vCltKrOvlR76tSJcWh35CcdHB2L37g2Zpk3vME")  # Thay bằng token
+bot.run("MTM3Mzk3NTM4OTg0NzgxODM4Mw.GXXuBt.uYwOnOiRCdwy5JaCTrzRimk5AZUAMUx6d9TjBw")  # Thay bằng token
