@@ -292,4 +292,4 @@ async def listadmin(interaction: discord.Interaction):
     await interaction.response.send_message(f"**Danh sách admin:**\n{admins_list}", ephemeral=True)
 
 
-bot.run("MTM3Mzk3NTM4OTg0NzgxODM4Mw.GXXuBt.uYwOnOiRCdwy5JaCTrzRimk5AZUAMUx6d9TjBw")  # Thay bằng token
+bot.run("MTM3Mzk3NTM4OTg0NzgxODM4Mw.G1iSvn.RR5mfZSHT4k3ga8Hji192Ma04FXoYsif_EcbHY")  # Thay bằng token
