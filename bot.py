@@ -6,6 +6,23 @@ import requests
 import time
 import os
 
+from flask import Flask
+from threading import Thread
+
+# Tạo web server để UptimeRobot ping
+app = Flask('')
+
+@app.route('/')
+def home():
+    return "Bot is alive!"
+
+def run():
+    app.run(host='0.0.0.0', port=8080)
+
+# Khởi động web server ở luồng riêng
+Thread(target=run).start()
+
+# Thiết lập bot
 intents = discord.Intents.default()
 intents.message_content = True
 bot = commands.Bot(command_prefix="!", intents=intents)
@@ -95,7 +112,7 @@ async def get_account(interaction, key, accounts, label):
     used_keys.add(key)
     await interaction.response.send_message(f"**Tài khoản {label}**\nEmail: `{email}`\nPassword: `{password}`", ephemeral=True)
 
-# Các lệnh nhận tài khoản
+# Lệnh nhận tài khoản
 @tree.command(name="mail", description="Nhận tài khoản Email")
 @app_commands.describe(key="Key hợp lệ")
 async def mail(interaction: discord.Interaction, key: str):
@@ -219,5 +236,5 @@ async def listadmin(interaction: discord.Interaction):
     ids = "\n".join([str(uid) for uid in admin_ids])
     await interaction.response.send_message(f"Danh sách admin:\n```{ids}```", ephemeral=True)
 
-# Khởi chạy bot
+# Chạy bot
 bot.run(os.environ["DISCORD_TOKEN"])
