@@ -1,9 +1,0 @@
-services:
-  - type: web
-    name: discord-bot
-    runtime: python
-    buildCommand: ""
-    startCommand: ./start.sh
-    envVars:
-      - key: DISCORD_TOKEN
-        value: MTM3Mzk3NTM4OTg0NzgxODM4Mw.GmKntP.DrDWhH3JzBzuowXaIlb6ZlfB0r7tR23gNVk7YI
