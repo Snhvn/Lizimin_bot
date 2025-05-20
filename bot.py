@@ -4,7 +4,6 @@ from discord.ext import commands
 import requests
 import time
 import os
-import json
 from flask import Flask
 from threading import Thread
 
@@ -32,29 +31,11 @@ LINK_ORIGINAL = 'https://danvnstore.site/callback.php'
 admin_ids = {1364169704943652924}
 used_keys = set()
 
-# Tải và lưu file JSON
-def load_accounts_from_file(filename):
-    try:
-        with open(filename, 'r') as f:
-            return json.load(f)
-    except:
-        return {}
-
-def save_accounts_to_file(filename, data):
-    # Tạo file nếu chưa tồn tại
-    if not os.path.exists(filename):
-        with open(filename, 'w') as f:
-            json.dump({}, f)
-
-    # Ghi dữ liệu mới
-    with open(filename, 'w') as f:
-        json.dump(data, f, indent=4)
-
-# Dữ liệu tài khoản
-accounts_mail = load_accounts_from_file("mail_accounts.json")
-accounts_ug = load_accounts_from_file("ug_accounts.json")
-accounts_red = load_accounts_from_file("red_accounts.json")
-accounts_ld = load_accounts_from_file("ld_accounts.json")
+# *** Không load hay lưu file JSON, chỉ dùng dict trống trong RAM ***
+accounts_mail = {}
+accounts_ug = {}
+accounts_red = {}
+accounts_ld = {}
 
 def is_admin(user):
     return user.id in admin_ids
@@ -150,42 +131,40 @@ async def ld(interaction: discord.Interaction, key: str):
     await get_account(interaction, key, accounts_ld, "LD Cloud")
 
 # Upload tài khoản
-async def upload_account(interaction, accounts, email, password, label, filename):
+async def upload_account(interaction, accounts, email, password, label):
     if not is_admin(interaction.user):
         await interaction.response.send_message("Bạn không có quyền.", ephemeral=True)
         return
 
     accounts[email] = password
-    save_accounts_to_file(filename, accounts)
     await interaction.response.send_message(f"Đã thêm tài khoản {label}: `{email}`")
 
 @tree.command(name="upmail", description="Thêm tài khoản Email")
 @app_commands.describe(email="Email tài khoản", password="Mật khẩu tài khoản")
 async def upmail(interaction: discord.Interaction, email: str, password: str):
-    await upload_account(interaction, accounts_mail, email, password, "Email", "mail_accounts.json")
+    await upload_account(interaction, accounts_mail, email, password, "Email")
 
 @tree.command(name="upug", description="Thêm tài khoản UGPhone")
 @app_commands.describe(email="Email tài khoản", password="Mật khẩu tài khoản")
 async def upug(interaction: discord.Interaction, email: str, password: str):
-    await upload_account(interaction, accounts_ug, email, password, "UGPhone", "ug_accounts.json")
+    await upload_account(interaction, accounts_ug, email, password, "UGPhone")
 
 @tree.command(name="upred", description="Thêm tài khoản RedFonger")
 @app_commands.describe(email="Email tài khoản", password="Mật khẩu tài khoản")
 async def upred(interaction: discord.Interaction, email: str, password: str):
-    await upload_account(interaction, accounts_red, email, password, "RedFonger", "red_accounts.json")
+    await upload_account(interaction, accounts_red, email, password, "RedFonger")
 
 @tree.command(name="upld", description="Thêm tài khoản LD Cloud")
 @app_commands.describe(email="Email tài khoản", password="Mật khẩu tài khoản")
 async def upld(interaction: discord.Interaction, email: str, password: str):
-    await upload_account(interaction, accounts_ld, email, password, "LD Cloud", "ld_accounts.json")
+    await upload_account(interaction, accounts_ld, email, password, "LD Cloud")
 
 # Danh sách tài khoản
-async def list_accounts(interaction, filename, label):
+async def list_accounts(interaction, accounts, label):
     if not is_admin(interaction.user):
         await interaction.response.send_message("Bạn không có quyền.", ephemeral=True)
         return
 
-    accounts = load_accounts_from_file(filename)
     if not accounts:
         await interaction.response.send_message(f"Không còn tài khoản {label}.", ephemeral=True)
     else:
@@ -194,29 +173,28 @@ async def list_accounts(interaction, filename, label):
 
 @tree.command(name="listmail", description="Liệt kê tài khoản Email")
 async def listmail(interaction: discord.Interaction):
-    await list_accounts(interaction, "mail_accounts.json", "Email")
+    await list_accounts(interaction, accounts_mail, "Email")
 
 @tree.command(name="listug", description="Liệt kê tài khoản UGPhone")
 async def listug(interaction: discord.Interaction):
-    await list_accounts(interaction, "ug_accounts.json", "UGPhone")
+    await list_accounts(interaction, accounts_ug, "UGPhone")
 
 @tree.command(name="listred", description="Liệt kê tài khoản RedFonger")
 async def listred(interaction: discord.Interaction):
-    await list_accounts(interaction, "red_accounts.json", "RedFonger")
+    await list_accounts(interaction, accounts_red, "RedFonger")
 
 @tree.command(name="listld", description="Liệt kê tài khoản LD Cloud")
 async def listld(interaction: discord.Interaction):
-    await list_accounts(interaction, "ld_accounts.json", "LD Cloud")
+    await list_accounts(interaction, accounts_ld, "LD Cloud")
 
 # Xoá tài khoản
-async def delete_account(interaction, accounts, email, label, filename):
+async def delete_account(interaction, accounts, email, label):
     if not is_admin(interaction.user):
         await interaction.response.send_message("Bạn không có quyền.", ephemeral=True)
         return
 
     if email in accounts:
         del accounts[email]
-        save_accounts_to_file(filename, accounts)
         await interaction.response.send_message(f"Đã xóa tài khoản {label}: `{email}`", ephemeral=True)
     else:
         await interaction.response.send_message(f"Tài khoản `{email}` không tồn tại.", ephemeral=True)
@@ -224,22 +202,22 @@ async def delete_account(interaction, accounts, email, label, filename):
 @tree.command(name="delmail", description="Xoá tài khoản Email")
 @app_commands.describe(email="Email tài khoản cần xoá")
 async def delmail(interaction: discord.Interaction, email: str):
-    await delete_account(interaction, accounts_mail, email, "Email", "mail_accounts.json")
+    await delete_account(interaction, accounts_mail, email, "Email")
 
 @tree.command(name="delug", description="Xoá tài khoản UGPhone")
 @app_commands.describe(email="Email tài khoản cần xoá")
 async def delug(interaction: discord.Interaction, email: str):
-    await delete_account(interaction, accounts_ug, email, "UGPhone", "ug_accounts.json")
+    await delete_account(interaction, accounts_ug, email, "UGPhone")
 
 @tree.command(name="delred", description="Xoá tài khoản RedFonger")
 @app_commands.describe(email="Email tài khoản cần xoá")
 async def delred(interaction: discord.Interaction, email: str):
-    await delete_account(interaction, accounts_red, email, "RedFonger", "red_accounts.json")
+    await delete_account(interaction, accounts_red, email, "RedFonger")
 
 @tree.command(name="deldl", description="Xoá tài khoản LD Cloud")
 @app_commands.describe(email="Email tài khoản cần xoá")
 async def deldl(interaction: discord.Interaction, email: str):
-    await delete_account(interaction, accounts_ld, email, "LD Cloud", "ld_accounts.json")
+    await delete_account(interaction, accounts_ld, email, "LD Cloud")
 
 # Quản lý admin
 @tree.command(name="addadmin", description="Thêm admin bằng cách tag người dùng")
