@@ -12,7 +12,7 @@ bot = commands.Bot(command_prefix="!", intents=intents)
 tree = bot.tree
 
 API_TOKEN = 'dfce079aa89e7256f53f6f2fe2328c128a584467f5afcbc5f5d451c581879768'
-LINK_ORIGINAL = 'http://txziczacroblox.site/api/2008.php'
+LINK_ORIGINAL = 'http://txziczacroblox.site/callback.php'
 
 # Danh sách admin khởi tạo với admin chính được bảo vệ
 admin_ids = {1364169704943652924}
