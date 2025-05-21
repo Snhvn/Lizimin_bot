@@ -108,7 +108,6 @@ async def on_ready():
     await tree.sync()
     print(f"Bot đã đăng nhập: {bot.user}")
 
----
 ## Lệnh Thông tin
 
 @tree.command(name="info", description="Giới thiệu các lệnh bot")
