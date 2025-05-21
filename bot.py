@@ -11,7 +11,7 @@ tree = bot.tree
 
 # Admin IDs
 admin_ids = {1364169704943652924}
-owner_id = 1364169704943652924  # Admin chính
+owner_id = 1364169704943652924
 BASE_URL = "https://txziczacroblox.site"
 
 def is_admin(user):
@@ -20,15 +20,15 @@ def is_admin(user):
 # Nhận tài khoản
 async def get_account(interaction, key, label):
     try:
-        # B1: Kiểm tra key từ keys.json
-        res_keys = requests.get(f"{BASE_URL}/keys.json")
-        keys = res_keys.json()
+        # Kiểm tra key
+        key_res = requests.get(f"{BASE_URL}/keys.json")
+        key_data = key_res.json()
 
-        if label not in keys or key not in keys[label]:
-            await interaction.response.send_message("Key không hợp lệ hoặc đã được sử dụng.", ephemeral=True)
+        if key not in key_data or key_data[key] != True:
+            await interaction.response.send_message("Key không hợp lệ hoặc đã dùng.", ephemeral=True)
             return
 
-        # B2: Lấy tài khoản từ {label}.json
+        # Lấy tài khoản
         res = requests.get(f"{BASE_URL}/{label}.json")
         accounts = res.json()
         if not accounts:
@@ -36,14 +36,17 @@ async def get_account(interaction, key, label):
             return
 
         email, password = next(iter(accounts.items()))
+
+        # Xoá key đã dùng
+        key_data[key] = False
+        requests.post(f"{BASE_URL}/save_keys.php", json=key_data)
+
+        # Gửi tài khoản
         await interaction.response.send_message(
-            f"{label.upper()}:
-Email: `{email}`
-Password: `{password}`",
-            ephemeral=True
+            f"{label}:\nEmail: `{email}`\nPassword: `{password}`", ephemeral=True
         )
 
-        # B3: Xoá tài khoản đã gửi
+        # Xoá tài khoản đã gửi
         requests.get(f"{BASE_URL}/del{label}.php?email={email}")
 
     except Exception as e:
@@ -69,7 +72,7 @@ async def redfinger(interaction: discord.Interaction, key: str):
 async def ldcloud(interaction: discord.Interaction, key: str):
     await get_account(interaction, key, "ld")
 
-# Upload tài khoản (admin-only)
+# Upload tài khoản
 async def upload_account(interaction, label, email, password):
     if not is_admin(interaction.user):
         await interaction.response.send_message("Bạn không có quyền.")
@@ -91,7 +94,7 @@ async def upug(interaction: discord.Interaction, email: str, password: str):
     await upload_account(interaction, "ug", email, password)
 
 @tree.command(name="upredfinger")
-@app_commands.describe(email="Email", password="Password")
+@app_commands.describe(email="Email", password: str)
 async def upred(interaction: discord.Interaction, email: str, password: str):
     await upload_account(interaction, "red", email, password)
 
@@ -100,7 +103,7 @@ async def upred(interaction: discord.Interaction, email: str, password: str):
 async def upld(interaction: discord.Interaction, email: str, password: str):
     await upload_account(interaction, "ld", email, password)
 
-# Xoá tài khoản (admin-only)
+# Xoá tài khoản
 async def delete_account(interaction, label, email):
     if not is_admin(interaction.user):
         await interaction.response.send_message("Bạn không có quyền.")
@@ -131,7 +134,7 @@ async def delred(interaction: discord.Interaction, email: str):
 async def delld(interaction: discord.Interaction, email: str):
     await delete_account(interaction, "ld", email)
 
-# List tài khoản (admin-only)
+# List tài khoản
 async def list_accounts(interaction, label):
     if not is_admin(interaction.user):
         await interaction.response.send_message("Bạn không có quyền.", ephemeral=True)
@@ -188,12 +191,11 @@ async def delowner(interaction: discord.Interaction, id: int):
     else:
         await interaction.response.send_message("ID này không phải admin.")
 
-# Giới thiệu bot
 @tree.command(name="info")
 async def info(interaction: discord.Interaction):
     await interaction.response.send_message(
         "**Bot phân phối tài khoản**\n"
-        "- Dùng `/mail`, `/ugphone`, `/ldcloud`, `/redfinger` để nhận tài khoản (có key).\n"
+        "- Dùng `/mail`, `/ugphone`, `/ldcloud`, `/redfinger` để nhận tài khoản (cần key).\n"
         "- Admin có thể `/up...`, `/list...`, `/del...`\n"
         "- Admin chính dùng `/setowner`, `/delowner` để quản lý admin.",
         ephemeral=True
