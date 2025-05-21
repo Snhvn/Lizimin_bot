@@ -18,28 +18,35 @@ def is_admin(user):
 
 async def get_account(interaction, key, label):
     try:
+        # Tải key
         key_res = requests.get(f"{BASE_URL}/keys.json")
         key_data = key_res.json()
 
+        # Nếu key không hợp lệ hoặc đã dùng
         if key not in key_data or key_data[key] != True:
             await interaction.response.send_message("Key không hợp lệ hoặc đã dùng.", ephemeral=True)
             return
 
+        # Đánh dấu key đã dùng NGAY LẬP TỨC
+        key_data[key] = False
+        requests.post(f"{BASE_URL}/save_keys.php", json=key_data)
+
+        # Tải danh sách tài khoản
         res = requests.get(f"{BASE_URL}/{label}.json")
         accounts = res.json()
+
         if not accounts:
             await interaction.response.send_message(f"Hết tài khoản {label}.", ephemeral=True)
             return
 
+        # Lấy 1 tài khoản
         email, password = next(iter(accounts.items()))
-
-        key_data[key] = False
-        requests.post(f"{BASE_URL}/save_keys.php", json=key_data)
 
         await interaction.response.send_message(
             f"{label}:\nEmail: `{email}`\nPassword: `{password}`", ephemeral=True
         )
 
+        # Xoá tài khoản đã dùng
         requests.get(f"{BASE_URL}/del{label}.php?email={email}")
 
     except Exception as e:
