@@ -132,9 +132,10 @@ async def info(interaction: discord.Interaction):
     is_admin_user = interaction.user.id in admin_ids
 
     description = (
+        "``/getkey - Lấy Key Sử Dụng``\n"
         "``/gmail <key> - Lấy tài khoản Email``\n"
         "``/ugphone <key> - Lấy tài khoản UGPhone``\n"
-        "``/redfinger <key> - Lấy tài khoản RedFonger``\n"
+        "``/redfinger <key> - Lấy tài khoản RedFinger``\n"
         "``/ldcloud <key> - Lấy tài khoản LD Cloud``\n"
     )
     if is_admin_user:
@@ -147,10 +148,10 @@ async def info(interaction: discord.Interaction):
             "``/listugphone - (Admin) Xem danh sách tài khoản UGPhone còn lại``\n"
             "``/listredfinger - (Admin) Xem danh sách tài khoản RedFonger còn lại``\n"
             "``/listldcloud - (Admin) Xem danh sách tài khoản LD Cloud còn lại``\n"
-            "``/delmail <email> - (Admin) Xóa tài khoản Email``\n"
-            "``/delug <email> - (Admin) Xóa tài khoản UGPhone``\n"
-            "``/delred <email> - (Admin) Xóa tài khoản RedFonger``\n"
-            "``/deldl <email> - (Admin) Xóa tài khoản LD Cloud``\n"
+            "``/dellgmail <email> - (Admin) Xóa tài khoản Email``\n"
+            "``/dellugphone <email> - (Admin) Xóa tài khoản UGPhone``\n"
+            "``/dellredfinger <email> - (Admin) Xóa tài khoản RedFinger``\n"
+            "``/delldcloud <email> - (Admin) Xóa tài khoản LD Cloud``\n"
             "``/setowner <user> - (Admin) Thêm admin mới``\n"
             "``/delowner <user> - (Admin) Gỡ admin``\n"
             "``/listadmin - (Admin) Danh sách admin``"
@@ -161,8 +162,22 @@ async def info(interaction: discord.Interaction):
         color=Colour(0xAA00FF)
     )
     embed.set_image(url="https://i.imgur.com/WFeKMG6.gif")
-    await interaction.response.send_message(embed=embed, ephemeral=True)
 
+    # Create a View to hold the button
+    view = discord.ui.View()
+    
+    # Create the red button
+    join_server_button = discord.ui.Button(
+        label="Tham gia Server Hỗ Trợ",
+        style=discord.ButtonStyle.danger,  # Red color
+        url="https://discord.gg/Rgr7vCXwu2"
+    )
+    
+    # Add the button to the view
+    view.add_item(join_server_button)
+
+    # Send the message with the embed and the view
+    await interaction.response.send_message(embed=embed, view=view, ephemeral=True)
 # Lấy Link Key Rút Gọn
 @tree.command(name="getkey", description="Lấy link key rút gọn.")
 async def getkey(interaction: discord.Interaction):
@@ -303,7 +318,7 @@ async def listugphone(interaction: discord.Interaction):
 
 @tree.command(name="listredfinger", description="(Admin) Xem danh sách tài khoản RedFonger còn lại.")
 async def listredfinger(interaction: discord.Interaction):
-    await list_accounts(interaction, accounts_red, "RedFonger")
+    await list_accounts(interaction, accounts_red, "RedFinger")
 
 @tree.command(name="listldcloud", description="(Admin) Xem danh sách tài khoản LD Cloud còn lại.")
 async def listldcloud(interaction: discord.Interaction):
@@ -322,24 +337,24 @@ async def delete_account(interaction, email, accounts_dict, account_type, write_
     save_accounts(write_url, accounts_dict) # Lưu lại sau khi xóa
     await interaction.response.send_message(f"**Đã xóa tài khoản {account_type} với email `{email}`.**", ephemeral=True)
 
-@tree.command(name="delmail", description="(Admin) Xóa tài khoản Email.")
+@tree.command(name="dellgmail", description="(Admin) Xóa tài khoản Gmail.")
 @app_commands.describe(email="Email tài khoản cần xóa")
-async def delmail(interaction: discord.Interaction, email: str):
+async def dellgmail(interaction: discord.Interaction, email: str):
     await delete_account(interaction, email, accounts_mail, "Email", WRITE_MAIL_URL)
 
-@tree.command(name="delug", description="(Admin) Xóa tài khoản UGPhone.")
+@tree.command(name="dellugphone", description="(Admin) Xóa tài khoản UGPhone.")
 @app_commands.describe(email="Email tài khoản cần xóa")
-async def delug(interaction: discord.Interaction, email: str):
+async def dellugphone(interaction: discord.Interaction, email: str):
     await delete_account(interaction, email, accounts_ug, "UGPhone", WRITE_UG_URL)
 
-@tree.command(name="delred", description="(Admin) Xóa tài khoản RedFonger.")
+@tree.command(name="dellredfinger", description="(Admin) Xóa tài khoản RedFonger.")
 @app_commands.describe(email="Email tài khoản cần xóa")
-async def delred(interaction: discord.Interaction, email: str):
-    await delete_account(interaction, email, accounts_red, "RedFonger", WRITE_RED_URL)
+async def dellredfinger(interaction: discord.Interaction, email: str):
+    await delete_account(interaction, email, accounts_red, "RedFinger", WRITE_RED_URL)
 
-@tree.command(name="deldl", description="(Admin) Xóa tài khoản LD Cloud.")
+@tree.command(name="delldcloud", description="(Admin) Xóa tài khoản LD Cloud.")
 @app_commands.describe(email="Email tài khoản cần xóa")
-async def deldl(interaction: discord.Interaction, email: str):
+async def delldcloud(interaction: discord.Interaction, email: str):
     await delete_account(interaction, email, accounts_ld, "LD Cloud", WRITE_LD_URL)
 
 # Quản Lý Admin
