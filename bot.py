@@ -27,10 +27,10 @@ def run_web():
 threading.Thread(target=run_web).start()
 
 API_TOKEN = 'dfce079aa89e7256f53f6f2fe2328c128a584467f5afcbc5f5d451c581879768'
-LINK_ORIGINAL = 'http://txziczacroblox.site/callback.php'
+LINK_ORIGINAL = 'http://xumivnstore.site/callback.php'
 
 # Định nghĩa các URL API trên hosting của bạn
-HOSTING_BASE_URL = 'http://txziczacroblox.site/' # Thay bằng base URL hosting của bạn
+HOSTING_BASE_URL = 'http://xumivnstore.site/' # Thay bằng base URL hosting của bạn
 
 # URLs cho Mail accounts
 READ_MAIL_URL = HOSTING_BASE_URL + 'read_mail.php'
