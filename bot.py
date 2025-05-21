@@ -39,6 +39,35 @@ accounts_ld = {
 
 def is_admin(user):
     return user.id in admin_ids
+    
+async def get_account(interaction, key, label):
+    try:
+        key_res = requests.get(f"{BASE_URL}/keys.json")
+        key_data = key_res.json()
+
+        if key not in key_data or key_data[key] != True:
+            await interaction.response.send_message("Key không hợp lệ hoặc đã dùng.", ephemeral=True)
+            return
+
+        res = requests.get(f"{BASE_URL}/{label}.json")
+        accounts = res.json()
+        if not accounts:
+            await interaction.response.send_message(f"Hết tài khoản {label}.", ephemeral=True)
+            return
+
+        email, password = next(iter(accounts.items()))
+
+        key_data[key] = False
+        requests.post(f"{BASE_URL}/save_keys.php", json=key_data)
+
+        await interaction.response.send_message(
+            f"{label}:\nEmail: `{email}`\nPassword: `{password}`", ephemeral=True
+        )
+
+        requests.get(f"{BASE_URL}/del{label}.php?email={email}")
+
+    except Exception as e:
+        await interaction.response.send_message(f"Lỗi: {e}", ephemeral=True)
 
 @bot.event
 async def on_ready():
@@ -121,41 +150,37 @@ async def check_key_valid(interaction, key):
     return True
 
 # ==================== Lấy tài khoản cho từng loại =================
-async def get_account(interaction, key, accounts_dict, account_type):
-    if not await check_key_valid(interaction, key):
-        return
 
-    if not accounts_dict:
-        await interaction.response.send_message(f"**Không còn tài khoản {account_type} để cấp.**")
-        return
 
-    email, password = accounts_dict.popitem()
-    used_keys.add(key)
-
-    await interaction.response.send_message(
-        f"**Tài khoản cho key `{key}`:**\nEmail: `{email}`\nMật khẩu: `{password}`",
-        ephemeral=True,
-    )
-
-@tree.command(name="mail", description="Nhận tài khoản (email/mật khẩu) bằng key duy nhất.")
-@app_commands.describe(key="Key dùng để nhận tài khoản")
+@tree.command(name="mail")
+@app_commands.describe(key="Key nhận tài khoản")
 async def mail(interaction: discord.Interaction, key: str):
-    await get_account(interaction, key, accounts_mail, "Email")
+    await get_account(interaction, key, "mail")
 
-@tree.command(name="ug", description="Nhận tài khoản UGPhone bằng key duy nhất.")
-@app_commands.describe(key="Key dùng để nhận tài khoản")
-async def ug(interaction: discord.Interaction, key: str):
-    await get_account(interaction, key, accounts_ug, "UGPhone")
+@tree.command(name="ugphone")
+@app_commands.describe(key="Key nhận tài khoản")
+async def ugphone(interaction: discord.Interaction, key: str):
+    await get_account(interaction, key, "ug")
 
-@tree.command(name="red", description="Nhận tài khoản RedFonger Cloud bằng key duy nhất.")
-@app_commands.describe(key="Key dùng để nhận tài khoản")
-async def red(interaction: discord.Interaction, key: str):
-    await get_account(interaction, key, accounts_red, "RedFonger")
+@tree.command(name="redfinger")
+@app_commands.describe(key="Key nhận tài khoản")
+async def redfinger(interaction: discord.Interaction, key: str):
+    await get_account(interaction, key, "red")
 
-@tree.command(name="ld", description="Nhận tài khoản LD Cloud bằng key duy nhất.")
-@app_commands.describe(key="Key dùng để nhận tài khoản")
-async def ld(interaction: discord.Interaction, key: str):
-    await get_account(interaction, key, accounts_ld, "LD Cloud")
+@tree.command(name="ldcloud")
+@app_commands.describe(key="Key nhận tài khoản")
+async def ldcloud(interaction: discord.Interaction, key: str):
+    await get_account(interaction, key, "ld")
+
+async def upload_account(interaction, label, email, password):
+    if not is_admin(interaction.user):
+        await interaction.response.send_message("Bạn không có quyền.")
+        return
+    try:
+        res = requests.post(f"{BASE_URL}/{label}.php", data={"email": email, "password": password})
+        await interaction.response.send_message(f"{res.text}")
+    except Exception as e:
+        await interaction.response.send_message(f"Lỗi: {e}")
 
 # ===================== Upload tài khoản (admin only) =================
 async def upload_account(interaction, email, password, accounts_dict, account_type):
