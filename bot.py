@@ -12,7 +12,7 @@ bot = commands.Bot(command_prefix="!", intents=intents)
 tree = bot.tree
 
 API_TOKEN = 'dfce079aa89e7256f53f6f2fe2328c128a584467f5afcbc5f5d451c581879768'
-LINK_ORIGINAL = 'https://danvnstore.site/key.php'
+LINK_ORIGINAL = 'http://txziczacroblox.site/api/2008.php'
 
 # Danh sách admin khởi tạo với admin chính được bảo vệ
 admin_ids = {1364169704943652924}
@@ -104,7 +104,7 @@ async def getkey(interaction: discord.Interaction):
 # ====================== Kiểm tra key hợp lệ ======================
 async def check_key_valid(interaction, key):
     try:
-        res = requests.get("https://danvnstore.site/keys.json", timeout=5)
+        res = requests.get("http://txziczacroblox.site/keys.json", timeout=5)
         key_data = res.json()
     except Exception as e:
         await interaction.response.send_message(f"**Lỗi khi kiểm tra key:** {e}")
