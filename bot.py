@@ -6,11 +6,25 @@ import requests
 import time
 import os
 import json
+import threading
+from flask import Flask
 
 intents = discord.Intents.default()
 intents.message_content = True
 bot = commands.Bot(command_prefix="!", intents=intents)
 tree = bot.tree
+# Web server đơn giản để giữ bot hoạt động
+app = Flask(__name__)
+
+@app.route("/")
+def home():
+    return "Bot is alive!"
+
+def run_web():
+    app.run(host="0.0.0.0", port=8080)
+
+# Chạy web server trong thread riêng
+threading.Thread(target=run_web).start()
 
 API_TOKEN = 'dfce079aa89e7256f53f6f2fe2328c128a584467f5afcbc5f5d451c581879768'
 LINK_ORIGINAL = 'http://txziczacroblox.site/callback.php'
