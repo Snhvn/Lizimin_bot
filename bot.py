@@ -108,6 +108,7 @@ async def on_ready():
     await tree.sync()
     print(f"Bot đã đăng nhập: {bot.user}")
 
+
 ## Lệnh Thông tin
 
 @tree.command(name="info", description="Giới thiệu các lệnh bot")
@@ -148,7 +149,7 @@ async def info(interaction: discord.Interaction):
 
     await interaction.response.send_message(embed=embed, ephemeral=True)
 
----
+
 ## Lấy Link Key Rút Gọn
 
 @tree.command(name="getkey", description="Lấy link key rút gọn.")
@@ -171,7 +172,7 @@ async def getkey(interaction: discord.Interaction):
     except Exception as e:
         await interaction.response.send_message(f"**Lỗi hệ thống:** {e}")
 
----
+
 ## Kiểm Tra Key Hợp Lệ
 
 async def check_key_valid(interaction, key):
@@ -197,7 +198,7 @@ async def check_key_valid(interaction, key):
 
     return True
 
----
+
 ## Lấy Tài Khoản (Người dùng)
 
 async def get_account(interaction, key, accounts_dict, account_type, write_url):
@@ -243,7 +244,7 @@ async def red(interaction: discord.Interaction, key: str):
 async def ld(interaction: discord.Interaction, key: str):
     await get_account(interaction, key, accounts_ld, "LD Cloud", WRITE_LD_URL)
 
----
+
 ## Upload Tài Khoản (Admin)
 
 async def upload_account(interaction, email, password, accounts_dict, account_type, write_url):
@@ -279,7 +280,7 @@ async def upred(interaction: discord.Interaction, email: str, password: str):
 async def upld(interaction: discord.Interaction, email: str, password: str):
     await upload_account(interaction, email, password, accounts_ld, "LD Cloud", WRITE_LD_URL)
 
----
+
 ## List Tài Khoản (Admin)
 
 async def list_accounts(interaction, accounts_dict, account_type):
@@ -312,7 +313,7 @@ async def listred(interaction: discord.Interaction):
 async def listld(interaction: discord.Interaction):
     await list_accounts(interaction, accounts_ld, "LD Cloud")
 
----
+
 ## Xóa Tài Khoản (Admin)
 
 async def delete_account(interaction, email, accounts_dict, account_type, write_url):
@@ -348,7 +349,7 @@ async def delred(interaction: discord.Interaction, email: str):
 async def deldl(interaction: discord.Interaction, email: str):
     await delete_account(interaction, email, accounts_ld, "LD Cloud", WRITE_LD_URL)
 
----
+
 ## Quản Lý Admin
 
 @tree.command(name="addadmin", description="Thêm admin mới.")
