@@ -12,7 +12,7 @@ SAVE_MAIL_URL = "https://txziczacroblox.site/save_mail.php"
 KEYS_URL = "https://txziczacroblox.site/keys.json"
 SAVE_KEYS_URL = "https://txziczacroblox.site/save_keys.php"
 
-ADMIN_IDS = [1364169704943652924]  # Thay bằng user ID của bạn
+ADMIN_IDS = [123456789012345678]  # Thay bằng user ID của bạn
 
 @client.event
 async def on_ready():
