@@ -28,7 +28,7 @@ bot = commands.Bot(command_prefix="!", intents=intents)
 tree = bot.tree
 
 API_TOKEN = 'dfce079aa89e7256f53f6f2fe2328c128a584467f5afcbc5f5d451c581879768'
-LINK_ORIGINAL = 'https://danvnstore.site/callback.php'
+LINK_ORIGINAL = 'https://txziczacroblox.site/callback.php'
 YOUR_SECRET_KEY = 'lizimininbot'  # Đổi thành key bí mật khớp với file PHP
 
 admin_ids = {1364169704943652924}
@@ -99,7 +99,7 @@ async def get_account(interaction, key, label):
         return
 
     try:
-        res = requests.post("https://danvnstore.site/get_account.php", data={
+        res = requests.post("https://txziczacroblox.site/get_account.php", data={
             "label": label,
             "key": YOUR_SECRET_KEY
         })
@@ -142,7 +142,7 @@ async def upload_account(interaction, label, email, password):
         return
 
     try:
-        res = requests.post("https://danvnstore.site/upload_account.php", data={
+        res = requests.post("https://txziczacroblox.site/upload_account.php", data={
             "label": label,
             "email": email,
             "password": password,
@@ -182,7 +182,7 @@ async def delete_account(interaction, label, email):
         return
 
     try:
-        res = requests.post("https://danvnstore.site/delete_account.php", data={
+        res = requests.post("https://txziczacroblox.site/delete_account.php", data={
             "label": label,
             "email": email,
             "key": YOUR_SECRET_KEY
