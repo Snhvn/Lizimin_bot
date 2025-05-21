@@ -16,26 +16,11 @@ LINK_ORIGINAL = 'http://txziczacroblox.site/callback.php'
 
 # Danh sách admin khởi tạo với admin chính được bảo vệ
 admin_ids = {1364169704943652924}
-
+BASE_URL = "https://txziczacroblox.site"
 used_keys = set()
 
 # Các dict lưu tài khoản từng loại
-accounts_mail = {
-    "user1@example.com": "pass1",
-    "user2@example.com": "pass2",
-}
-accounts_ug = {
-    "ug1@example.com": "ugpass1",
-    "ug2@example.com": "ugpass2",
-}
-accounts_red = {
-    "red1@example.com": "redpass1",
-    "red2@example.com": "redpass2",
-}
-accounts_ld = {
-    "ld1@example.com": "ldpass1",
-    "ld2@example.com": "ldpass2",
-}
+
 
 def is_admin(user):
     return user.id in admin_ids
