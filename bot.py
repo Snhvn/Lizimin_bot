@@ -8,8 +8,6 @@ import json
 import threading
 from flask import Flask
 
-# Dòng import discord.app_commands đã bị xóa
-
 # --- Cấu hình Bot Discord ---
 intents = discord.Intents.default()
 intents.message_content = True # Rất quan trọng cho Prefix Commands
@@ -50,7 +48,7 @@ WRITE_RED_URL = HOSTING_BASE_URL + 'write_red.php'
 READ_LD_URL = HOSTING_BASE_URL + 'read_ld.php'
 WRITE_LD_URL = HOSTING_BASE_URL + 'write_ld.php'
 
-# URLs cho UGLocal accounts (chỉ tài khoản, không mật khẩu)
+# URLs cho UGLocal (chỉ code/tài khoản không mật khẩu)
 READ_UGLOCAL_URL = HOSTING_BASE_URL + 'read_uglocal.php'
 WRITE_UGLOCAL_URL = HOSTING_BASE_URL + 'write_uglocal.php'
 
@@ -98,11 +96,13 @@ accounts_mail = load_data_from_api(READ_MAIL_URL, dict)
 accounts_ug = load_data_from_api(READ_UG_URL, dict)
 accounts_red = load_data_from_api(READ_RED_URL, dict)
 accounts_ld = load_data_from_api(READ_LD_URL, dict)
-accounts_uglocal = load_data_from_api(READ_UGLOCAL_URL, set) # Khởi tạo accounts_uglocal là một set
+# accounts_uglocal sẽ lưu các đoạn code, dùng set để lưu trữ các đoạn code duy nhất
+accounts_uglocal = load_data_from_api(READ_UGLOCAL_URL, set) 
 
 admin_ids = load_data_from_api(READ_ADMINS_URL, set)
 used_keys = load_data_from_api(READ_USED_KEYS_URL, set)
 
+# ĐẶT ID DISCORD CỦA BẠN VÀO ĐÂY ĐỂ LÀM ADMIN CHÍNH
 MAIN_ADMIN_ID = 1364169704943652924 # Thay thế bằng ID của bạn
 if MAIN_ADMIN_ID not in admin_ids:
     admin_ids.add(MAIN_ADMIN_ID)
@@ -116,8 +116,6 @@ def is_admin(user_id):
 async def on_ready():
     print(f"Bot đã đăng nhập: {bot.user}")
     await bot.change_presence(activity=discord.Game(name="Phục vụ cộng đồng"))
-
-    # KHỐI CODE ĐỂ XÓA SLASH COMMANDS ĐÃ ĐƯỢC XÓA TẠI ĐÂY
 
 # --- Xử lý lỗi Cooldown ---
 @bot.event
@@ -146,7 +144,7 @@ async def info(ctx: commands.Context):
         "``!ugphone <key>`` - Lấy tài khoản UGPhone.\n"
         "``!redfinger <key>`` - Lấy tài khoản RedFinger.\n"
         "``!ldcloud <key>`` - Lấy tài khoản LD Cloud.\n"
-        "``!uglocal <key>`` - Lấy tài khoản UGLocal (chỉ tài khoản, không mật khẩu).\n" # Thêm lệnh mới
+        "``!uglocal <key>`` - Lấy đoạn code/tài khoản UGLocal (chỉ tài khoản, không mật khẩu).\n" # Thêm lệnh mới
     )
     if is_admin_user:
         description += (
@@ -155,17 +153,17 @@ async def info(ctx: commands.Context):
             "``!upugphone <email> <password>`` - Thêm tài khoản UGPhone.\n"
             "``!upredfinger <email> <password>`` - Thêm tài khoản RedFinger.\n"
             "``!upldcloud <email> <password>`` - Thêm tài khoản LD Cloud.\n"
-            "``!upuglocal <account>`` - Thêm tài khoản UGLocal (chỉ tài khoản, không mật khẩu).\n" # Thêm lệnh admin mới
+            "``!upuglocal <code_string>`` - Thêm đoạn code/tài khoản UGLocal (chỉ tài khoản/code, không mật khẩu).\n" # Thêm lệnh admin mới
             "``!listgmail`` - Xem danh sách tài khoản Email còn lại.\n"
             "``!listugphone`` - Xem danh sách tài khoản UGPhone còn lại.\n"
             "``!listredfinger`` - Xem danh sách tài khoản RedFinger còn lại.\n"
             "``!listldcloud`` - Xem danh sách tài khoản LD Cloud còn lại.\n"
-            "``!listuglocal`` - Xem danh sách tài khoản UGLocal còn lại.\n" # Thêm lệnh admin mới
+            "``!listuglocal`` - Xem danh sách đoạn code/tài khoản UGLocal còn lại.\n" # Thêm lệnh admin mới
             "``!dellgmail <email>`` - Xóa tài khoản Email.\n"
             "``!dellugphone <email>`` - Xóa tài khoản UGPhone.\n"
             "``!dellredfinger <email>`` - Xóa tài khoản RedFinger.\n"
             "``!delldcloud <email>`` - Xóa tài khoản LD Cloud.\n"
-            "``!deluglocal <account>`` - Xóa tài khoản UGLocal (chỉ tài khoản).\n" # Thêm lệnh admin mới
+            "``!deluglocal <code_string>`` - Xóa đoạn code/tài khoản UGLocal.\n" # Thêm lệnh admin mới
             "``!setowner <user_mention_or_id>`` - Thêm admin mới.\n"
             "``!delowner <user_mention_or_id>`` - Gỡ admin.\n"
             "``!listadmin`` - Xem danh sách admin.\n"
@@ -244,7 +242,7 @@ async def check_key_valid(ctx: commands.Context, key: str) -> bool:
 
 # --- Hàm Cấp Tài Khoản Chung (Dành cho Người dùng) ---
 async def give_account(ctx: commands.Context, key: str, accounts_dict: dict, account_type: str, write_url: str):
-    """Cấp một tài khoản cho người dùng nếu key hợp lệ và tài khoản còn."""
+    """Cấp một tài khoản (email:password) cho người dùng nếu key hợp lệ và tài khoản còn."""
     if not await check_key_valid(ctx, key):
         return
 
@@ -268,34 +266,35 @@ async def give_account(ctx: commands.Context, key: str, accounts_dict: dict, acc
     except Exception as e:
         await ctx.send(f"**Lỗi khi cấp tài khoản {account_type}:** {e}")
 
-# --- Hàm Cấp Tài Khoản Chỉ Tài Khoản (Dành cho Người dùng) ---
+# --- Hàm Cấp Code/Tài Khoản Chỉ Tài Khoản (Dành cho Người dùng) ---
 async def give_single_account(ctx: commands.Context, key: str, accounts_set: set, account_type: str, write_url: str):
-    """Cấp một tài khoản (chỉ tài khoản/email, không mật khẩu) cho người dùng nếu key hợp lệ và tài khoản còn."""
+    """Cấp một đoạn code/tài khoản (chỉ tài khoản/email, không mật khẩu) cho người dùng nếu key hợp lệ và tài khoản còn."""
     if not await check_key_valid(ctx, key):
         return
 
     if not accounts_set:
-        await ctx.send(f"**Không còn tài khoản {account_type} để cấp.**")
+        await ctx.send(f"**Không còn đoạn code/tài khoản {account_type} để cấp.**") # Đổi thông báo
         return
     
     try:
-        # Lấy một tài khoản ngẫu nhiên từ set
-        account = accounts_set.pop() 
+        # Lấy một đoạn code/tài khoản ngẫu nhiên từ set
+        account_data = accounts_set.pop() 
         
         used_keys.add(key)
         save_data_from_api(WRITE_USED_KEYS_URL, used_keys)
 
         save_data_from_api(write_url, accounts_set) # Lưu lại sau khi pop
         
+        # Sửa đổi phần gửi tin nhắn để định dạng code block chung
         await ctx.send(
-            f"**✅ Tài khoản {account_type} cho key `{key}` của bạn:**\n"
-            f"Tài khoản: ``{account}``\n"
-            f"Vui lòng sử dụng tài khoản này!"
+            f"**✅ Đoạn code/tài khoản {account_type} cho key `{key}` của bạn:**\n"
+            f"```\n{account_data}\n```\n" # Sử dụng ``` để tạo code block chung
+            f"Vui lòng sử dụng đoạn code/tài khoản này!"
         )
     except KeyError: # Nếu set rỗng giữa chừng
-        await ctx.send(f"**Không còn tài khoản {account_type} để cấp.**")
+        await ctx.send(f"**Không còn đoạn code/tài khoản {account_type} để cấp.**") # Đổi thông báo
     except Exception as e:
-        await ctx.send(f"**Lỗi khi cấp tài khoản {account_type}:** {e}")
+        await ctx.send(f"**Lỗi khi cấp đoạn code/tài khoản {account_type}:** {e}")
 
 # --- Định nghĩa các Prefix Command để lấy tài khoản ---
 @bot.command(name="gmail", help="Nhận tài khoản Email bằng key duy nhất.")
@@ -318,14 +317,14 @@ async def redfinger(ctx: commands.Context, key: str):
 async def ldcloud(ctx: commands.Context, key: str):
     await give_account(ctx, key, accounts_ld, "LD Cloud", WRITE_LD_URL)
 
-@bot.command(name="uglocal", help="Nhận tài khoản UGLocal (chỉ tài khoản) bằng key duy nhất.")
+@bot.command(name="uglocal", help="Nhận đoạn code/tài khoản UGLocal (chỉ tài khoản) bằng key duy nhất.")
 @commands.cooldown(1, 5, commands.BucketType.user)
 async def uglocal(ctx: commands.Context, key: str):
     await give_single_account(ctx, key, accounts_uglocal, "UGLocal", WRITE_UGLOCAL_URL)
 
 # --- Hàm Upload Tài Khoản Chung (Dành cho Admin) ---
 async def admin_upload_account(ctx: commands.Context, email: str, password: str, accounts_dict: dict, account_type: str, write_url: str):
-    """Thêm tài khoản mới vào danh sách."""
+    """Thêm tài khoản (email:password) mới vào danh sách."""
     if not is_admin(ctx.author.id):
         await ctx.send("Bạn không có quyền dùng lệnh này.")
         return
@@ -340,21 +339,21 @@ async def admin_upload_account(ctx: commands.Context, email: str, password: str,
         f"**✅ Đã thêm tài khoản {account_type}:**\nEmail: ``{email}``\nMật khẩu: ``{password}``"
     )
 
-# --- Hàm Upload Tài Khoản Chỉ Tài Khoản (Dành cho Admin) ---
-async def admin_upload_single_account(ctx: commands.Context, account: str, accounts_set: set, account_type: str, write_url: str):
-    """Thêm một tài khoản (chỉ tài khoản/email, không mật khẩu) mới vào danh sách."""
+# --- Hàm Upload Code/Tài Khoản Chỉ Tài Khoản (Dành cho Admin) ---
+async def admin_upload_single_account(ctx: commands.Context, account_string: str, accounts_set: set, account_type: str, write_url: str):
+    """Thêm một đoạn code/tài khoản (chỉ tài khoản/email, không mật khẩu) mới vào danh sách."""
     if not is_admin(ctx.author.id):
         await ctx.send("Bạn không có quyền dùng lệnh này.")
         return
 
-    if account in accounts_set:
-        await ctx.send(f"**Tài khoản `{account}` đã tồn tại trong {account_type}.**")
+    if account_string in accounts_set:
+        await ctx.send(f"**Đoạn code/tài khoản `{account_string}` đã tồn tại trong {account_type}.**")
         return
     
-    accounts_set.add(account)
+    accounts_set.add(account_string)
     save_data_from_api(write_url, accounts_set)
     await ctx.send(
-        f"**✅ Đã thêm tài khoản {account_type}:** ``{account}``"
+        f"**✅ Đã thêm đoạn code/tài khoản {account_type}:** ``{account_string}``"
     )
 
 # --- Định nghĩa các Prefix Command để upload tài khoản (Admin) ---
@@ -375,9 +374,9 @@ async def upredfinger(ctx: commands.Context, email: str, password: str):
 async def upldcloud(ctx: commands.Context, email: str, password: str):
     await admin_upload_account(ctx, email, password, accounts_ld, "LD Cloud", WRITE_LD_URL)
 
-@bot.command(name="upuglocal", help="(Admin) Thêm tài khoản UGLocal mới (chỉ tài khoản).")
-async def upuglocal(ctx: commands.Context, account: str):
-    await admin_upload_single_account(ctx, account, accounts_uglocal, "UGLocal", WRITE_UGLOCAL_URL)
+@bot.command(name="upuglocal", help="(Admin) Thêm đoạn code/tài khoản UGLocal mới.")
+async def upuglocal(ctx: commands.Context, *, account_string: str): # Dùng *, để lấy cả chuỗi dài
+    await admin_upload_single_account(ctx, account_string, accounts_uglocal, "UGLocal", WRITE_UGLOCAL_URL)
 
 # --- Hàm List Tài Khoản Chung (Dành cho Admin) ---
 async def admin_list_accounts(ctx: commands.Context, accounts_dict: dict, account_type: str):
@@ -407,23 +406,23 @@ async def admin_list_accounts(ctx: commands.Context, accounts_dict: dict, accoun
     if message:
         await ctx.send(message)
 
-# --- Hàm List Tài Khoản Chỉ Tài Khoản (Dành cho Admin) ---
+# --- Hàm List Code/Tài Khoản Chỉ Tài Khoản (Dành cho Admin) ---
 async def admin_list_single_accounts(ctx: commands.Context, accounts_set: set, account_type: str):
-    """Liệt kê tất cả các tài khoản (chỉ tài khoản) còn lại trong một loại cụ thể."""
+    """Liệt kê tất cả các đoạn code/tài khoản (chỉ tài khoản) còn lại trong một loại cụ thể."""
     if not is_admin(ctx.author.id):
         await ctx.send("Bạn không có quyền sử dụng lệnh này.")
         return
 
     if not accounts_set:
-        await ctx.send(f"**Không còn tài khoản {account_type} nào.**")
+        await ctx.send(f"**Không còn đoạn code/tài khoản {account_type} nào.**")
         return
     
-    message = f"**Danh sách tài khoản {account_type} còn lại ({len(accounts_set)} tài khoản):**\n"
+    message = f"**Danh sách đoạn code/tài khoản {account_type} còn lại ({len(accounts_set)} đoạn):**\n"
     current_length = len(message)
     max_length = 1900
 
-    for account in accounts_set:
-        line = f"- ``{account}``\n"
+    for account_data in accounts_set:
+        line = f"- ```{account_data[:50]}...```\n" # Hiển thị 50 ký tự đầu để tránh quá dài
         if current_length + len(line) > max_length:
             await ctx.send(message)
             message = line
@@ -452,13 +451,13 @@ async def listredfinger(ctx: commands.Context):
 async def listldcloud(ctx: commands.Context):
     await admin_list_accounts(ctx, accounts_ld, "LD Cloud")
 
-@bot.command(name="listuglocal", help="(Admin) Xem danh sách tài khoản UGLocal còn lại.")
+@bot.command(name="listuglocal", help="(Admin) Xem danh sách đoạn code/tài khoản UGLocal còn lại.")
 async def listuglocal(ctx: commands.Context):
     await admin_list_single_accounts(ctx, accounts_uglocal, "UGLocal")
 
 # --- Hàm Xóa Tài Khoản Chung (Dành cho Admin) ---
 async def admin_delete_account(ctx: commands.Context, email: str, accounts_dict: dict, account_type: str, write_url: str):
-    """Xóa một tài khoản khỏi danh sách."""
+    """Xóa một tài khoản (email:password) khỏi danh sách."""
     if not is_admin(ctx.author.id):
         await ctx.send("Bạn không có quyền dùng lệnh này.")
         return
@@ -473,21 +472,21 @@ async def admin_delete_account(ctx: commands.Context, email: str, accounts_dict:
         f"**✅ Đã xóa tài khoản {account_type} với email ``{email}``.**"
     )
 
-# --- Hàm Xóa Tài Khoản Chỉ Tài Khoản (Dành cho Admin) ---
-async def admin_delete_single_account(ctx: commands.Context, account: str, accounts_set: set, account_type: str, write_url: str):
-    """Xóa một tài khoản (chỉ tài khoản) khỏi danh sách."""
+# --- Hàm Xóa Code/Tài Khoản Chỉ Tài Khoản (Dành cho Admin) ---
+async def admin_delete_single_account(ctx: commands.Context, account_string: str, accounts_set: set, account_type: str, write_url: str):
+    """Xóa một đoạn code/tài khoản (chỉ tài khoản) khỏi danh sách."""
     if not is_admin(ctx.author.id):
         await ctx.send("Bạn không có quyền dùng lệnh này.")
         return
 
-    if account not in accounts_set:
-        await ctx.send(f"**Tài khoản `{account}` không tồn tại trong {account_type}.**")
+    if account_string not in accounts_set:
+        await ctx.send(f"**Đoạn code/tài khoản `{account_string}` không tồn tại trong {account_type}.**")
         return
     
-    accounts_set.remove(account) # Dùng remove cho set
+    accounts_set.remove(account_string) # Dùng remove cho set
     save_data_from_api(write_url, accounts_set)
     await ctx.send(
-        f"**✅ Đã xóa tài khoản {account_type}: ``{account}``.**"
+        f"**✅ Đã xóa đoạn code/tài khoản {account_type}: ``{account_string}``.**"
     )
 
 # --- Định nghĩa các Prefix Command để xóa tài khoản (Admin) ---
@@ -507,9 +506,9 @@ async def dellredfinger(ctx: commands.Context, email: str):
 async def delldcloud(ctx: commands.Context, email: str):
     await admin_delete_account(ctx, email, accounts_ld, "LD Cloud", WRITE_LD_URL)
 
-@bot.command(name="deluglocal", help="(Admin) Xóa tài khoản UGLocal.")
-async def deluglocal(ctx: commands.Context, account: str):
-    await admin_delete_single_account(ctx, account, accounts_uglocal, "UGLocal", WRITE_UGLOCAL_URL)
+@bot.command(name="deluglocal", help="(Admin) Xóa đoạn code/tài khoản UGLocal.")
+async def deluglocal(ctx: commands.Context, *, account_string: str): # Dùng *, để lấy cả chuỗi dài
+    await admin_delete_single_account(ctx, account_string, accounts_uglocal, "UGLocal", WRITE_UGLOCAL_URL)
 
 # --- Quản Lý Admin ---
 @bot.command(name="setowner", help="(Admin) Thêm một người dùng làm admin mới.")
