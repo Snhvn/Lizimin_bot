@@ -154,10 +154,10 @@ async def info(ctx: commands.Context):
             "``!upredfinger <email> <password>`` - Thêm tài khoản RedFinger.\n"
             "``!upldcloud <email> <password>`` - Thêm tài khoản LD Cloud.\n"
             "``!upuglocal <code_string>`` - Thêm đoạn code/tài khoản UGLocal (chỉ tài khoản/code, không mật khẩu).\n" # Thêm lệnh admin mới
-            "``!listgmail`` - Xem danh sách tài khoản Email còn lại.\n"
-            "``!listugphone`` - Xem danh sách tài khoản UGPhone còn lại.\n"
-            "``!listredfinger`` - Xem danh sách tài khoản RedFinger còn lại.\n"
-            "``!listldcloud`` - Xem danh sách tài khoản LD Cloud còn lại.\n"
+            "``!listgmail`` - Xem danh sách tài khoản Email còn lại. (Chỉ gửi DM)\n"
+            "``!listugphone`` - Xem danh sách tài khoản UGPhone còn lại. (Chỉ gửi DM)\n"
+            "``!listredfinger`` - Xem danh sách tài khoản RedFinger còn lại. (Chỉ gửi DM)\n"
+            "``!listldcloud`` - Xem danh sách tài khoản LD Cloud còn lại. (Chỉ gửi DM)\n"
             "``!listuglocal`` - Xem danh sách đoạn code/tài khoản UGLocal còn lại.\n" # Thêm lệnh admin mới
             "``!dellgmail <email>`` - Xóa tài khoản Email.\n"
             "``!dellugphone <email>`` - Xóa tài khoản UGPhone.\n"
@@ -380,59 +380,71 @@ async def upuglocal(ctx: commands.Context, *, account_string: str): # Dùng *, �
 
 # --- Hàm List Tài Khoản Chung (Dành cho Admin) ---
 async def admin_list_accounts(ctx: commands.Context, accounts_dict: dict, account_type: str):
-    """Liệt kê tất cả các tài khoản còn lại trong một loại cụ thể."""
+    """Liệt kê tất cả các tài khoản còn lại trong một loại cụ thể và gửi qua DM."""
     if not is_admin(ctx.author.id):
         await ctx.send("Bạn không có quyền sử dụng lệnh này.")
         return
 
     if not accounts_dict:
-        await ctx.send(f"**Không còn tài khoản {account_type} nào.**")
+        await ctx.author.send(f"**Không còn tài khoản {account_type} nào.**")
+        await ctx.send(f"Đã gửi kết quả vào DM của bạn.", delete_after=5) # Thông báo trong kênh chat
         return
     
-    message = f"**Danh sách tài khoản {account_type} còn lại ({len(accounts_dict)} tài khoản):**\n"
-    current_length = len(message)
-    max_length = 1900
+    messages = []
+    current_message = f"**Danh sách tài khoản {account_type} còn lại ({len(accounts_dict)} tài khoản):**\n"
+    max_length = 1900 # Giới hạn của tin nhắn Discord
 
-    for email in accounts_dict:
-        line = f"- ``{email}``\n"
-        if current_length + len(line) > max_length:
-            await ctx.send(message)
-            message = line
-            current_length = len(line)
+    for email, password in accounts_dict.items():
+        line = f"- ``{email}`` : ``{password}``\n"
+        if len(current_message) + len(line) > max_length:
+            messages.append(current_message)
+            current_message = line
         else:
-            message += line
-            current_length += len(line)
+            current_message += line
     
-    if message:
-        await ctx.send(message)
+    if current_message:
+        messages.append(current_message)
+    
+    try:
+        for msg in messages:
+            await ctx.author.send(msg)
+        await ctx.send(f"**✅ Đã gửi danh sách tài khoản {account_type} vào tin nhắn riêng của bạn.**", delete_after=5)
+    except discord.Forbidden:
+        await ctx.send(f"**🚫 Tôi không thể gửi tin nhắn riêng cho bạn.** Vui lòng kiểm tra cài đặt quyền riêng tư của bạn hoặc đảm bảo bạn không chặn tin nhắn từ bot.", delete_after=10)
 
 # --- Hàm List Code/Tài Khoản Chỉ Tài Khoản (Dành cho Admin) ---
 async def admin_list_single_accounts(ctx: commands.Context, accounts_set: set, account_type: str):
-    """Liệt kê tất cả các đoạn code/tài khoản (chỉ tài khoản) còn lại trong một loại cụ thể."""
+    """Liệt kê tất cả các đoạn code/tài khoản (chỉ tài khoản) còn lại trong một loại cụ thể và gửi qua DM."""
     if not is_admin(ctx.author.id):
         await ctx.send("Bạn không có quyền sử dụng lệnh này.")
         return
 
     if not accounts_set:
-        await ctx.send(f"**Không còn đoạn code/tài khoản {account_type} nào.**")
+        await ctx.author.send(f"**Không còn đoạn code/tài khoản {account_type} nào.**")
+        await ctx.send(f"Đã gửi kết quả vào DM của bạn.", delete_after=5)
         return
     
-    message = f"**Danh sách đoạn code/tài khoản {account_type} còn lại ({len(accounts_set)} đoạn):**\n"
-    current_length = len(message)
+    messages = []
+    current_message = f"**Danh sách đoạn code/tài khoản {account_type} còn lại ({len(accounts_set)} đoạn):**\n"
     max_length = 1900
 
     for account_data in accounts_set:
-        line = f"- ```{account_data[:50]}...```\n" # Hiển thị 50 ký tự đầu để tránh quá dài
-        if current_length + len(line) > max_length:
-            await ctx.send(message)
-            message = line
-            current_length = len(line)
+        line = f"- ```{account_data}```\n" # Giữ nguyên toàn bộ code block trong DM
+        if len(current_message) + len(line) > max_length:
+            messages.append(current_message)
+            current_message = line
         else:
-            message += line
-            current_length += len(line)
+            current_message += line
     
-    if message:
-        await ctx.send(message)
+    if current_message:
+        messages.append(current_message)
+
+    try:
+        for msg in messages:
+            await ctx.author.send(msg)
+        await ctx.send(f"**✅ Đã gửi danh sách đoạn code/tài khoản {account_type} vào tin nhắn riêng của bạn.**", delete_after=5)
+    except discord.Forbidden:
+        await ctx.send(f"**🚫 Tôi không thể gửi tin nhắn riêng cho bạn.** Vui lòng kiểm tra cài đặt quyền riêng tư của bạn hoặc đảm bảo bạn không chặn tin nhắn từ bot.", delete_after=10)
 
 # --- Định nghĩa các Prefix Command để list tài khoản (Admin) ---
 @bot.command(name="listgmail", help="(Admin) Xem danh sách tài khoản Email còn lại.")
