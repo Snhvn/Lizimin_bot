@@ -57,6 +57,7 @@ READ_USED_KEYS_URL = HOSTING_BASE_URL + 'read_used_keys.php'
 WRITE_USED_KEYS_URL = HOSTING_BASE_URL + 'write_used_keys.php'
 
 # --- Hàm Tải/Lưu Dữ liệu từ API ---
+# DI CHUYỂN CÁC HÀM NÀY LÊN TRÊN PHẦN KHỞI TẠO DỮ LIỆU
 def load_data_from_api(url, default_value_type):
     """Tải dữ liệu (tài khoản hoặc ID) từ URL API."""
     try:
@@ -73,7 +74,7 @@ def load_data_from_api(url, default_value_type):
         print(f"Lỗi giải mã JSON từ {url}: {e}")
     return default_value_type()
 
-def save_data_to_api(url, data):
+def save_data_from_api(url, data):
     """Lưu dữ liệu (tài khoản hoặc ID) vào URL API."""
     try:
         json_data = list(data) if isinstance(data, set) else data
@@ -88,6 +89,7 @@ def save_data_to_api(url, data):
         print(f"Lỗi giải mã JSON khi lưu vào {url}: {e}")
 
 # --- Khởi tạo Dữ liệu Toàn cục ---
+# BÂY GIỜ CÁC HÀM load_data_from_api VÀ save_data_from_api ĐÃ ĐƯỢC ĐỊNH NGHĨA TRƯỚC KHI GỌI
 accounts_mail = load_data_from_api(READ_MAIL_URL, dict)
 accounts_ug = load_data_from_api(READ_UG_URL, dict)
 accounts_red = load_data_from_api(READ_RED_URL, dict)
@@ -98,7 +100,7 @@ used_keys = load_data_from_api(READ_USED_KEYS_URL, set)
 MAIN_ADMIN_ID = 1364169704943652924
 if MAIN_ADMIN_ID not in admin_ids:
     admin_ids.add(MAIN_ADMIN_ID)
-    save_data_from_api(WRITE_ADMINS_URL, admin_ids)
+    save_data_from_api(WRITE_ADMINS_URL, admin_ids) # Dòng này giờ sẽ hoạt động
 
 def is_admin(user_id):
     return user_id in admin_ids
@@ -107,11 +109,25 @@ def is_admin(user_id):
 @bot.event
 async def on_ready():
     print(f"Bot đã đăng nhập: {bot.user}")
-    # Không cần tree.sync() cho prefix commands
     await bot.change_presence(activity=discord.Game(name="Phục vụ cộng đồng"))
+
+# --- Xử lý lỗi Cooldown ---
+@bot.event
+async def on_command_error(ctx, error):
+    if isinstance(error, commands.CommandOnCooldown):
+        remaining_time = round(error.retry_after, 1)
+        await ctx.send(f"**⏰ Vui lòng chờ {remaining_time} giây trước khi sử dụng lệnh này lần nữa.**", delete_after=5)
+    elif isinstance(error, commands.MissingRequiredArgument):
+        await ctx.send(f"Bạn thiếu đối số cần thiết cho lệnh này. Vui lòng kiểm tra lại cú pháp. (Lỗi: {error})")
+    elif isinstance(error, commands.BadArgument):
+        await ctx.send(f"Đối số bạn cung cấp không hợp lệ. Vui lòng kiểm tra lại. (Lỗi: {error})")
+    else:
+        print(f"Lỗi không mong muốn xảy ra: {error}")
+        # await ctx.send(f"Đã xảy ra lỗi không mong muốn khi thực thi lệnh: {error}")
 
 # --- Lệnh `!info` (Giới thiệu bot và các lệnh) ---
 @bot.command(name="info", help="Giới thiệu về bot và các lệnh khả dụng.")
+@commands.cooldown(1, 5, commands.BucketType.user) # 1 lần dùng mỗi 5 giây cho mỗi người dùng
 async def info(ctx: commands.Context):
     is_admin_user = is_admin(ctx.author.id)
 
@@ -162,6 +178,7 @@ async def info(ctx: commands.Context):
 
 # --- Lệnh `!getkey` (Lấy link key) ---
 @bot.command(name="getkey", help="Lấy link key rút gọn để sử dụng các lệnh khác.")
+@commands.cooldown(1, 5, commands.BucketType.user) # 1 lần dùng mỗi 5 giây cho mỗi người dùng
 async def getkey(ctx: commands.Context):
     user_id = str(ctx.author.id)
     try:
@@ -241,18 +258,22 @@ async def give_account(ctx: commands.Context, key: str, accounts_dict: dict, acc
 
 # --- Định nghĩa các Prefix Command để lấy tài khoản ---
 @bot.command(name="gmail", help="Nhận tài khoản Email bằng key duy nhất.")
+@commands.cooldown(1, 5, commands.BucketType.user) # 1 lần dùng mỗi 5 giây cho mỗi người dùng
 async def gmail(ctx: commands.Context, key: str):
     await give_account(ctx, key, accounts_mail, "Email", WRITE_MAIL_URL)
 
 @bot.command(name="ugphone", help="Nhận tài khoản UGPhone bằng key duy nhất.")
+@commands.cooldown(1, 5, commands.BucketType.user) # 1 lần dùng mỗi 5 giây cho mỗi người dùng
 async def ugphone(ctx: commands.Context, key: str):
     await give_account(ctx, key, accounts_ug, "UGPhone", WRITE_UG_URL)
 
 @bot.command(name="redfinger", help="Nhận tài khoản RedFinger Cloud bằng key duy nhất.")
+@commands.cooldown(1, 5, commands.BucketType.user) # 1 lần dùng mỗi 5 giây cho mỗi người dùng
 async def redfinger(ctx: commands.Context, key: str):
     await give_account(ctx, key, accounts_red, "RedFinger", WRITE_RED_URL)
 
 @bot.command(name="ldcloud", help="Nhận tài khoản LD Cloud bằng key duy nhất.")
+@commands.cooldown(1, 5, commands.BucketType.user) # 1 lần dùng mỗi 5 giây cho mỗi người dùng
 async def ldcloud(ctx: commands.Context, key: str):
     await give_account(ctx, key, accounts_ld, "LD Cloud", WRITE_LD_URL)
 
@@ -274,6 +295,7 @@ async def admin_upload_account(ctx: commands.Context, email: str, password: str,
     )
 
 # --- Định nghĩa các Prefix Command để upload tài khoản (Admin) ---
+# Thường các lệnh admin không cần cooldown, nhưng có thể thêm nếu muốn
 @bot.command(name="upgmail", help="(Admin) Thêm tài khoản Email mới.")
 async def upgmail(ctx: commands.Context, email: str, password: str):
     await admin_upload_account(ctx, email, password, accounts_mail, "Email", WRITE_MAIL_URL)
@@ -282,7 +304,7 @@ async def upgmail(ctx: commands.Context, email: str, password: str):
 async def upugphone(ctx: commands.Context, email: str, password: str):
     await admin_upload_account(ctx, email, password, accounts_ug, "UGPhone", WRITE_UG_URL)
 
-@bot.command(name="upredfinger", help="(Admin) Thêm tài khoản RedFinger mới.")
+@bot.command(name="upredfinger", help="(Admin) Thêm tài khoản RedFonger mới.")
 async def upredfinger(ctx: commands.Context, email: str, password: str):
     await admin_upload_account(ctx, email, password, accounts_red, "RedFinger", WRITE_RED_URL)
 
@@ -361,7 +383,7 @@ async def dellgmail(ctx: commands.Context, email: str):
 async def dellugphone(ctx: commands.Context, email: str):
     await admin_delete_account(ctx, email, accounts_ug, "UGPhone", WRITE_UG_URL)
 
-@bot.command(name="dellredfinger", help="(Admin) Xóa tài khoản RedFinger.")
+@bot.command(name="dellredfinger", help="(Admin) Xóa tài khoản RedFonger.")
 async def dellredfinger(ctx: commands.Context, email: str):
     await admin_delete_account(ctx, email, accounts_red, "RedFinger", WRITE_RED_URL)
 
@@ -371,7 +393,7 @@ async def delldcloud(ctx: commands.Context, email: str):
 
 # --- Quản Lý Admin ---
 @bot.command(name="setowner", help="(Admin) Thêm một người dùng làm admin mới.")
-async def setowner(ctx: commands.Context, user: discord.Member): # discord.Member tự động phân giải từ mention/ID
+async def setowner(ctx: commands.Context, user: discord.Member):
     if not is_admin(ctx.author.id):
         await ctx.send("Bạn không có quyền thực hiện thao tác này.")
         return
