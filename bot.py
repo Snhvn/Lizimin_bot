@@ -8,6 +8,8 @@ import json
 import threading
 from flask import Flask
 
+# Dòng import discord.app_commands đã bị xóa
+
 # --- Cấu hình Bot Discord ---
 intents = discord.Intents.default()
 intents.message_content = True # Rất quan trọng cho Prefix Commands
@@ -57,7 +59,6 @@ READ_USED_KEYS_URL = HOSTING_BASE_URL + 'read_used_keys.php'
 WRITE_USED_KEYS_URL = HOSTING_BASE_URL + 'write_used_keys.php'
 
 # --- Hàm Tải/Lưu Dữ liệu từ API ---
-# DI CHUYỂN CÁC HÀM NÀY LÊN TRÊN PHẦN KHỞI TẠO DỮ LIỆU
 def load_data_from_api(url, default_value_type):
     """Tải dữ liệu (tài khoản hoặc ID) từ URL API."""
     try:
@@ -89,7 +90,6 @@ def save_data_from_api(url, data):
         print(f"Lỗi giải mã JSON khi lưu vào {url}: {e}")
 
 # --- Khởi tạo Dữ liệu Toàn cục ---
-# BÂY GIỜ CÁC HÀM load_data_from_api VÀ save_data_from_api ĐÃ ĐƯỢC ĐỊNH NGHĨA TRƯỚC KHI GỌI
 accounts_mail = load_data_from_api(READ_MAIL_URL, dict)
 accounts_ug = load_data_from_api(READ_UG_URL, dict)
 accounts_red = load_data_from_api(READ_RED_URL, dict)
@@ -100,7 +100,7 @@ used_keys = load_data_from_api(READ_USED_KEYS_URL, set)
 MAIN_ADMIN_ID = 1364169704943652924
 if MAIN_ADMIN_ID not in admin_ids:
     admin_ids.add(MAIN_ADMIN_ID)
-    save_data_from_api(WRITE_ADMINS_URL, admin_ids) # Dòng này giờ sẽ hoạt động
+    save_data_from_api(WRITE_ADMINS_URL, admin_ids) 
 
 def is_admin(user_id):
     return user_id in admin_ids
@@ -110,6 +110,8 @@ def is_admin(user_id):
 async def on_ready():
     print(f"Bot đã đăng nhập: {bot.user}")
     await bot.change_presence(activity=discord.Game(name="Phục vụ cộng đồng"))
+
+    # KHỐI CODE ĐỂ XÓA SLASH COMMANDS ĐÃ ĐƯỢC XÓA TẠI ĐÂY
 
 # --- Xử lý lỗi Cooldown ---
 @bot.event
