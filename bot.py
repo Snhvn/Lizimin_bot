@@ -103,7 +103,7 @@ admin_ids = load_data_from_api(READ_ADMINS_URL, set)
 used_keys = load_data_from_api(READ_USED_KEYS_URL, set)
 
 # ĐẶT ID DISCORD CỦA BẠN VÀO ĐÂY ĐỂ LÀM ADMIN CHÍNH
-MAIN_ADMIN_ID = 1364169704943652924 # Thay thế bằng ID của bạn
+MAIN_ADMIN_ID = 1375561305553109110 # Thay thế bằng ID của bạn
 if MAIN_ADMIN_ID not in admin_ids:
     admin_ids.add(MAIN_ADMIN_ID)
     save_data_from_api(WRITE_ADMINS_URL, admin_ids) 
@@ -115,7 +115,7 @@ def is_admin(user_id):
 @bot.event
 async def on_ready():
     print(f"Bot đã đăng nhập: {bot.user}")
-    await bot.change_presence(activity=discord.Game(name="Zalo: 0522428684"))
+    await bot.change_presence(activity=discord.Game(name="Phục vụ sever Xumi"))
 
 # --- Xử lý lỗi Cooldown ---
 @bot.event
