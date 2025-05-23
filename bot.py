@@ -122,10 +122,13 @@ async def on_ready():
 async def on_command_error(ctx, error):
     if isinstance(error, commands.CommandOnCooldown):
         remaining_time = round(error.retry_after, 1)
+        # Giữ nguyên gửi tin nhắn lỗi cooldown công khai
         await ctx.send(f"**⏰ Vui lòng chờ {remaining_time} giây trước khi sử dụng lệnh này lần nữa.**", delete_after=5)
     elif isinstance(error, commands.MissingRequiredArgument):
+        # Giữ nguyên gửi tin nhắn lỗi công khai
         await ctx.send(f"Bạn thiếu đối số cần thiết cho lệnh này. Vui lòng kiểm tra lại cú pháp. (Lỗi: {error})")
     elif isinstance(error, commands.BadArgument):
+        # Giữ nguyên gửi tin nhắn lỗi công khai
         await ctx.send(f"Đối số bạn cung cấp không hợp lệ. Vui lòng kiểm tra lại. (Lỗi: {error})")
     else:
         print(f"Lỗi không mong muốn xảy ra: {error}")
@@ -203,20 +206,33 @@ async def getkey(ctx: commands.Context):
         if data.get("status") == "success":
             short_url = data.get("shortenedUrl")
             if short_url:
-                await ctx.send(
+                # Gửi link key vào DM
+                await ctx.author.send(
                     f"**🔗 Link key rút gọn của bạn:**\n{short_url}\n"
                     f"Vui lòng truy cập link này để lấy key và sử dụng các lệnh khác."
                 )
+                # Thông báo trong kênh rằng đã gửi DM
+                await ctx.send(f"**{ctx.author.mention}**, link key của bạn đã được gửi qua tin nhắn riêng tư (DM)! Vui lòng kiểm tra DM của bạn.")
             else:
-                await ctx.send(f"**Lỗi API:** Không nhận được shortened URL.")
+                # Gửi lỗi vào DM
+                await ctx.author.send(f"**Lỗi API:** Không nhận được shortened URL.")
+                await ctx.send(f"**{ctx.author.mention}**, có lỗi khi lấy link key, vui lòng kiểm tra DM của bạn để biết chi tiết.")
         else:
-            await ctx.send(f"**Lỗi API:** {data.get('message', 'Lỗi không xác định từ API rút gọn.')}")
+            # Gửi lỗi vào DM
+            await ctx.author.send(f"**Lỗi API:** {data.get('message', 'Lỗi không xác định từ API rút gọn.')}")
+            await ctx.send(f"**{ctx.author.mention}**, có lỗi khi lấy link key, vui lòng kiểm tra DM của bạn để biết chi tiết.")
     except requests.exceptions.RequestException as e:
-        await ctx.send(f"**Lỗi kết nối API rút gọn:** Vui lòng thử lại sau. ({e})")
+        # Gửi lỗi vào DM
+        await ctx.author.send(f"**Lỗi kết nối API rút gọn:** Vui lòng thử lại sau. ({e})")
+        await ctx.send(f"**{ctx.author.mention}**, có lỗi kết nối khi lấy link key, vui lòng kiểm tra DM của bạn để biết chi tiết.")
     except json.JSONDecodeError:
-        await ctx.send(f"**Lỗi giải mã dữ liệu từ API rút gọn.**")
+        # Gửi lỗi vào DM
+        await ctx.author.send(f"**Lỗi giải mã dữ liệu từ API rút gọn.**")
+        await ctx.send(f"**{ctx.author.mention}**, có lỗi khi giải mã dữ liệu, vui lòng kiểm tra DM của bạn để biết chi tiết.")
     except Exception as e:
-        await ctx.send(f"**Lỗi hệ thống không mong muốn:** {e}")
+        # Gửi lỗi vào DM
+        await ctx.author.send(f"**Lỗi hệ thống không mong muốn:** {e}")
+        await ctx.send(f"**{ctx.author.mention}**, đã xảy ra lỗi hệ thống, vui lòng kiểm tra DM của bạn để biết chi tiết.")
 
 # --- Kiểm tra Key Hợp Lệ ---
 async def check_key_valid(ctx: commands.Context, key: str) -> bool:
@@ -226,16 +242,20 @@ async def check_key_valid(ctx: commands.Context, key: str) -> bool:
         res.raise_for_status()
         key_data = res.json()
     except requests.exceptions.RequestException as e:
+        # Giữ tin nhắn lỗi key công khai để người khác biết key đó không hợp lệ
         await ctx.send(f"Lỗi khi kiểm tra key từ máy chủ: {e}")
         return False
     except json.JSONDecodeError as e:
+        # Giữ tin nhắn lỗi key công khai
         await ctx.send(f"Lỗi giải mã JSON từ keys.json: {e}. Vui lòng kiểm tra file keys.json trên hosting.")
         return False
 
     if key not in key_data:
+        # Giữ tin nhắn lỗi key công khai
         await ctx.send(f"**Key `{key}` không hợp lệ hoặc không tồn tại.**")
         return False
     if key in used_keys:
+        # Giữ tin nhắn lỗi key công khai
         await ctx.send(f"**Key `{key}` đã được sử dụng để lấy tài khoản khác.**")
         return False
     return True
@@ -247,24 +267,35 @@ async def give_account(ctx: commands.Context, key: str, accounts_dict: dict, acc
         return
 
     if not accounts_dict:
+        # Giữ tin nhắn hết tài khoản công khai để người khác biết
         await ctx.send(f"**Không còn tài khoản {account_type} để cấp.**")
         return
     
     try:
+        # Lấy một tài khoản ngẫu nhiên và xóa khỏi danh sách
         email, password = accounts_dict.popitem()
         
+        # Thêm key vào danh sách đã sử dụng
         used_keys.add(key)
         save_data_from_api(WRITE_USED_KEYS_URL, used_keys)
 
+        # Lưu lại danh sách tài khoản đã cập nhật
         save_data_from_api(write_url, accounts_dict)
         
-        await ctx.send(
+        # GỬI TIN NHẮN TÀI KHOẢN VÀO DM CỦA NGƯỜI DÙNG
+        await ctx.author.send(
             f"**✅ Tài khoản {account_type} cho key `{key}` của bạn:**\n"
             f"Email: ``{email}``\nMật khẩu: ``{password}``\n"
             f"Hãy đổi mật khẩu ngay sau khi nhận được tài khoản để bảo mật!"
         )
+        # THÔNG BÁO NGẮN GỌN TRONG KÊNH CHAT
+        await ctx.send(f"**{ctx.author.mention}**, tài khoản {account_type} của bạn đã được gửi qua tin nhắn riêng tư (DM)! Vui lòng kiểm tra DM của bạn.")
+
     except Exception as e:
-        await ctx.send(f"**Lỗi khi cấp tài khoản {account_type}:** {e}")
+        # Gửi lỗi vào DM
+        await ctx.author.send(f"**Lỗi khi cấp tài khoản {account_type}:** {e}")
+        await ctx.send(f"**{ctx.author.mention}**, đã xảy ra lỗi khi cấp tài khoản, vui lòng kiểm tra DM của bạn để biết chi tiết.")
+
 
 # --- Hàm Cấp Code/Tài Khoản Chỉ Tài Khoản (Dành cho Người dùng) ---
 async def give_single_account(ctx: commands.Context, key: str, accounts_set: set, account_type: str, write_url: str):
@@ -273,30 +304,40 @@ async def give_single_account(ctx: commands.Context, key: str, accounts_set: set
         return
 
     if not accounts_set:
-        await ctx.send(f"**Không còn đoạn code/tài khoản {account_type} để cấp.**") # Đổi thông báo
+        # Giữ tin nhắn hết code/tài khoản công khai
+        await ctx.send(f"**Không còn đoạn code/tài khoản {account_type} để cấp.**") 
         return
     
     try:
-        # Lấy một đoạn code/tài khoản ngẫu nhiên từ set
+        # Lấy một đoạn code/tài khoản ngẫu nhiên từ set và xóa khỏi danh sách
         account_data = accounts_set.pop() 
         
+        # Thêm key vào danh sách đã sử dụng
         used_keys.add(key)
         save_data_from_api(WRITE_USED_KEYS_URL, used_keys)
 
-        save_data_from_api(write_url, accounts_set) # Lưu lại sau khi pop
+        # Lưu lại danh sách code/tài khoản đã cập nhật
+        save_data_from_api(write_url, accounts_set) 
         
-        # Sửa đổi phần gửi tin nhắn để định dạng code block chung
-        await ctx.send(
+        # GỬI TIN NHẮN CODE/TÀI KHOẢN VÀO DM CỦA NGƯỜI DÙNG
+        await ctx.author.send(
             f"**✅ Đoạn code/tài khoản {account_type} cho key `{key}` của bạn:**\n"
-            f"```\n{account_data}\n```\n" # Sử dụng ``` để tạo code block chung
+            f"```\n{account_data}\n```\n" 
             f"Vui lòng sử dụng đoạn code/tài khoản này!"
         )
+        # THÔNG BÁO NGẮN GỌN TRONG KÊNH CHAT
+        await ctx.send(f"**{ctx.author.mention}**, đoạn code/tài khoản {account_type} của bạn đã được gửi qua tin nhắn riêng tư (DM)! Vui lòng kiểm tra DM của bạn.")
+
     except KeyError: # Nếu set rỗng giữa chừng
-        await ctx.send(f"**Không còn đoạn code/tài khoản {account_type} để cấp.**") # Đổi thông báo
+        # Giữ tin nhắn hết code/tài khoản công khai
+        await ctx.send(f"**Không còn đoạn code/tài khoản {account_type} để cấp.**")
     except Exception as e:
-        await ctx.send(f"**Lỗi khi cấp đoạn code/tài khoản {account_type}:** {e}")
+        # Gửi lỗi vào DM
+        await ctx.author.send(f"**Lỗi khi cấp đoạn code/tài khoản {account_type}:** {e}")
+        await ctx.send(f"**{ctx.author.mention}**, đã xảy ra lỗi khi cấp đoạn code/tài khoản, vui lòng kiểm tra DM của bạn để biết chi tiết.")
 
 # --- Định nghĩa các Prefix Command để lấy tài khoản ---
+# Các lệnh này sẽ gọi hàm give_account hoặc give_single_account đã sửa đổi
 @bot.command(name="gmail", help="Nhận tài khoản Email bằng key duy nhất.")
 @commands.cooldown(1, 5, commands.BucketType.user) # 1 lần dùng mỗi 5 giây cho mỗi người dùng
 async def gmail(ctx: commands.Context, key: str):
