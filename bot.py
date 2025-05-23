@@ -1,5 +1,4 @@
 import discord
-from discord import app_commands
 from discord.ext import commands
 from discord import Embed, Colour
 import requests
@@ -9,29 +8,29 @@ import json
 import threading
 from flask import Flask
 
+# --- Cấu hình Bot Discord ---
 intents = discord.Intents.default()
-intents.message_content = True
-bot = commands.Bot(command_prefix="!", intents=intents)
-tree = bot.tree
+intents.message_content = True # Rất quan trọng cho Prefix Commands
+bot = commands.Bot(command_prefix="!", intents=intents) # Đặt prefix mong muốn
 
-# Web server đơn giản để giữ bot hoạt động
+# --- Web Server để giữ Bot hoạt động ---
 app = Flask(__name__)
 
 @app.route("/")
 def home():
     return "Bot is alive!"
 
-def run_web():
-    app.run(host="0.0.0.0", port=8080)
+def run_web_server():
+    """Chạy web server trong một thread riêng."""
+    app.run(host="0.0.0.0", port=int(os.environ.get("PORT", 8080)), debug=False, use_reloader=False)
 
 # Chạy web server trong thread riêng
-threading.Thread(target=run_web).start()
+threading.Thread(target=run_web_server).start()
 
-API_TOKEN = 'dfce079aa89e7256f53f6f2fe2328c128a584467f5afcbc5f5d451c581879768'
+# --- Cấu hình API và URLs ---
+API_TOKEN = os.environ.get('YEUMONEY_API_TOKEN', 'dfce079aa89e7256f53f6f2fe2328c128a584467f5afcbc5f5d451c581879768')
 LINK_ORIGINAL = 'https://xumivnstore.site/callback.php'
-
-# Định nghĩa các URL API trên hosting của bạn
-HOSTING_BASE_URL = 'https://xumivnstore.site/' # Thay bằng base URL hosting của bạn
+HOSTING_BASE_URL = 'https://xumivnstore.site/'
 
 # URLs cho Mail accounts
 READ_MAIL_URL = HOSTING_BASE_URL + 'read_mail.php'
@@ -57,368 +56,380 @@ WRITE_ADMINS_URL = HOSTING_BASE_URL + 'write_admins.php'
 READ_USED_KEYS_URL = HOSTING_BASE_URL + 'read_used_keys.php'
 WRITE_USED_KEYS_URL = HOSTING_BASE_URL + 'write_used_keys.php'
 
-def load_accounts(read_url):
-    """Tải tài khoản từ URL API."""
+# --- Hàm Tải/Lưu Dữ liệu từ API ---
+def load_data_from_api(url, default_value_type):
+    """Tải dữ liệu (tài khoản hoặc ID) từ URL API."""
     try:
-        response = requests.get(read_url, timeout=5)
-        response.raise_for_status() # Ném lỗi cho các mã trạng thái HTTP xấu (4xx, 5xx)
-        return response.json()
+        response = requests.get(url, timeout=10)
+        response.raise_for_status()
+        data = response.json()
+        if default_value_type == dict:
+            return data if isinstance(data, dict) else {}
+        elif default_value_type == set:
+            return set(data) if isinstance(data, list) else set()
     except requests.exceptions.RequestException as e:
-        print(f"Lỗi khi tải tài khoản từ {read_url}: {e}")
-        return {}
+        print(f"Lỗi khi tải dữ liệu từ {url}: {e}")
     except json.JSONDecodeError as e:
-        print(f"Lỗi giải mã JSON từ {read_url}: {e}")
-        return {}
+        print(f"Lỗi giải mã JSON từ {url}: {e}")
+    return default_value_type()
 
-def save_accounts(write_url, accounts):
-    """Lưu tài khoản vào URL API."""
+def save_data_to_api(url, data):
+    """Lưu dữ liệu (tài khoản hoặc ID) vào URL API."""
     try:
-        response = requests.post(write_url, json=accounts, timeout=5)
+        json_data = list(data) if isinstance(data, set) else data
+        response = requests.post(url, json=json_data, timeout=10)
         response.raise_for_status()
         result = response.json()
         if result.get('status') != 'success':
-            print(f"Lỗi khi lưu tài khoản vào {write_url}: {result.get('message', 'Lỗi không xác định')}")
+            print(f"Lỗi khi lưu dữ liệu vào {url}: {result.get('message', 'Lỗi không xác định')}")
     except requests.exceptions.RequestException as e:
-        print(f"Lỗi khi lưu tài khoản vào {write_url}: {e}")
-
-def load_ids(read_url):
-    """Tải ID (admins, used_keys) từ URL API."""
-    try:
-        response = requests.get(read_url, timeout=5)
-        response.raise_for_status()
-        return set(response.json())
-    except requests.exceptions.RequestException as e:
-        print(f"Lỗi khi tải ID từ {read_url}: {e}")
-        return set()
+        print(f"Lỗi khi lưu dữ liệu vào {url}: {e}")
     except json.JSONDecodeError as e:
-        print(f"Lỗi giải mã JSON từ {read_url}: {e}")
-        return set()
+        print(f"Lỗi giải mã JSON khi lưu vào {url}: {e}")
 
-def save_ids(write_url, ids):
-    """Lưu ID (admins, used_keys) vào URL API."""
-    try:
-        response = requests.post(write_url, json=list(ids), timeout=5)
-        response.raise_for_status()
-        result = response.json()
-        if result.get('status') != 'success':
-            print(f"Lỗi khi lưu ID vào {write_url}: {result.get('message', 'Lỗi không xác định')}")
-    except requests.exceptions.RequestException as e:
-        print(f"Lỗi khi lưu ID vào {write_url}: {e}")
+# --- Khởi tạo Dữ liệu Toàn cục ---
+accounts_mail = load_data_from_api(READ_MAIL_URL, dict)
+accounts_ug = load_data_from_api(READ_UG_URL, dict)
+accounts_red = load_data_from_api(READ_RED_URL, dict)
+accounts_ld = load_data_from_api(READ_LD_URL, dict)
+admin_ids = load_data_from_api(READ_ADMINS_URL, set)
+used_keys = load_data_from_api(READ_USED_KEYS_URL, set)
 
-# Khởi tạo dữ liệu từ các URL API trên hosting
-accounts_mail = load_accounts(READ_MAIL_URL)
-accounts_ug = load_accounts(READ_UG_URL)
-accounts_red = load_accounts(READ_RED_URL)
-accounts_ld = load_accounts(READ_LD_URL)
-admin_ids = load_ids(READ_ADMINS_URL)
-used_keys = load_ids(READ_USED_KEYS_URL)
+MAIN_ADMIN_ID = 1364169704943652924
+if MAIN_ADMIN_ID not in admin_ids:
+    admin_ids.add(MAIN_ADMIN_ID)
+    save_data_from_api(WRITE_ADMINS_URL, admin_ids)
 
-# Đảm bảo admin chính luôn có trong danh sách và lưu lại nếu cần
-if 1364169704943652924 not in admin_ids:
-    admin_ids.add(1364169704943652924)
-    save_ids(WRITE_ADMINS_URL, admin_ids)
+def is_admin(user_id):
+    return user_id in admin_ids
 
-def is_admin(user):
-    return user.id in admin_ids
-
+# --- Sự kiện Bot Sẵn sàng ---
 @bot.event
 async def on_ready():
-    await tree.sync()
     print(f"Bot đã đăng nhập: {bot.user}")
+    # Không cần tree.sync() cho prefix commands
+    await bot.change_presence(activity=discord.Game(name="Phục vụ cộng đồng"))
 
-# Lệnh Thông tin
-@tree.command(name="info", description="Giới thiệu các lệnh bot")
-async def info(interaction: discord.Interaction):
-    is_admin_user = interaction.user.id in admin_ids
+# --- Lệnh `!info` (Giới thiệu bot và các lệnh) ---
+@bot.command(name="info", help="Giới thiệu về bot và các lệnh khả dụng.")
+async def info(ctx: commands.Context):
+    is_admin_user = is_admin(ctx.author.id)
 
     description = (
-        "``/getkey - Lấy Key Sử Dụng``\n"
-        "``/gmail <key> - Lấy tài khoản Email``\n"
-        "``/ugphone <key> - Lấy tài khoản UGPhone``\n"
-        "``/redfinger <key> - Lấy tài khoản RedFinger``\n"
-        "``/ldcloud <key> - Lấy tài khoản LD Cloud``\n"
+        "**Lệnh dành cho người dùng:**\n"
+        "``!getkey`` - Lấy link key rút gọn để nhận tài khoản.\n"
+        "``!gmail <key>`` - Lấy tài khoản Email.\n"
+        "``!ugphone <key>`` - Lấy tài khoản UGPhone.\n"
+        "``!redfinger <key>`` - Lấy tài khoản RedFinger.\n"
+        "``!ldcloud <key>`` - Lấy tài khoản LD Cloud.\n"
     )
     if is_admin_user:
         description += (
-            "``/upgmail <email> <password> - (Admin) Thêm tài khoản Email``\n"
-            "``/upugphone <email> <password> - (Admin) Thêm tài khoản UGPhone``\n"
-            "``/upredfinger <email> <password> - (Admin) Thêm tài khoản RedFonger``\n"
-            "``/upldcloud <email> <password> - (Admin) Thêm tài khoản LD Cloud``\n"
-            "``/listgmail - (Admin) Xem danh sách tài khoản Email còn lại``\n"
-            "``/listugphone - (Admin) Xem danh sách tài khoản UGPhone còn lại``\n"
-            "``/listredfinger - (Admin) Xem danh sách tài khoản RedFonger còn lại``\n"
-            "``/listldcloud - (Admin) Xem danh sách tài khoản LD Cloud còn lại``\n"
-            "``/dellgmail <email> - (Admin) Xóa tài khoản Email``\n"
-            "``/dellugphone <email> - (Admin) Xóa tài khoản UGPhone``\n"
-            "``/dellredfinger <email> - (Admin) Xóa tài khoản RedFinger``\n"
-            "``/delldcloud <email> - (Admin) Xóa tài khoản LD Cloud``\n"
-            "``/setowner <user> - (Admin) Thêm admin mới``\n"
-            "``/delowner <user> - (Admin) Gỡ admin``\n"
-            "``/listadmin - (Admin) Danh sách admin``"
+            "\n**Lệnh dành cho Admin:**\n"
+            "``!upgmail <email> <password>`` - Thêm tài khoản Email.\n"
+            "``!upugphone <email> <password>`` - Thêm tài khoản UGPhone.\n"
+            "``!upredfinger <email> <password>`` - Thêm tài khoản RedFinger.\n"
+            "``!upldcloud <email> <password>`` - Thêm tài khoản LD Cloud.\n"
+            "``!listgmail`` - Xem danh sách tài khoản Email còn lại.\n"
+            "``!listugphone`` - Xem danh sách tài khoản UGPhone còn lại.\n"
+            "``!listredfinger`` - Xem danh sách tài khoản RedFinger còn lại.\n"
+            "``!listldcloud`` - Xem danh sách tài khoản LD Cloud còn lại.\n"
+            "``!dellgmail <email>`` - Xóa tài khoản Email.\n"
+            "``!dellugphone <email>`` - Xóa tài khoản UGPhone.\n"
+            "``!dellredfinger <email>`` - Xóa tài khoản RedFinger.\n"
+            "``!delldcloud <email>`` - Xóa tài khoản LD Cloud.\n"
+            "``!setowner <user_mention_or_id>`` - Thêm admin mới.\n"
+            "``!delowner <user_mention_or_id>`` - Gỡ admin.\n"
+            "``!listadmin`` - Xem danh sách admin.\n"
         )
     embed = Embed(
-        title="Các lệnh bot",
+        title="🤖 Thông tin Bot và Các Lệnh",
         description=description,
         color=Colour(0xAA00FF)
     )
+    embed.set_thumbnail(url=bot.user.avatar.url if bot.user.avatar else None)
     embed.set_image(url="https://i.imgur.com/WFeKMG6.gif")
 
-    # Create a View to hold the button
     view = discord.ui.View()
-    
-    # Create the red button
     join_server_button = discord.ui.Button(
         label="Tham gia Server Hỗ Trợ",
-        style=discord.ButtonStyle.danger,  # Red color
+        style=discord.ButtonStyle.link,
         url="https://discord.gg/Rgr7vCXwu2"
     )
-    
-    # Add the button to the view
     view.add_item(join_server_button)
 
-    # Send the message with the embed and the view
-    await interaction.response.send_message(embed=embed, view=view, ephemeral=True)
-# Lấy Link Key Rút Gọn
-@tree.command(name="getkey", description="Lấy link key rút gọn.")
-async def getkey(interaction: discord.Interaction):
-    user_id = str(interaction.user.id)
+    await ctx.send(embed=embed, view=view)
+
+# --- Lệnh `!getkey` (Lấy link key) ---
+@bot.command(name="getkey", help="Lấy link key rút gọn để sử dụng các lệnh khác.")
+async def getkey(ctx: commands.Context):
+    user_id = str(ctx.author.id)
     try:
         unique_link = f"{LINK_ORIGINAL}?uid={user_id}&t={int(time.time())}"
         encoded_link = requests.utils.quote(unique_link, safe='')
         api_url = f"https://yeumoney.com/QL_api.php?token={API_TOKEN}&url={encoded_link}&format=json"
-        res = requests.get(api_url, timeout=5)
+        
+        res = requests.get(api_url, timeout=10)
+        res.raise_for_status()
         data = res.json()
 
         if data.get("status") == "success":
-            short_url = data["shortenedUrl"]
-            await interaction.response.send_message(
-                f"**Link key rút gọn:** {short_url}"
-            )
+            short_url = data.get("shortenedUrl")
+            if short_url:
+                await ctx.send(
+                    f"**🔗 Link key rút gọn của bạn:**\n{short_url}\n"
+                    f"Vui lòng truy cập link này để lấy key và sử dụng các lệnh khác."
+                )
+            else:
+                await ctx.send(f"**Lỗi API:** Không nhận được shortened URL.")
         else:
-            await interaction.response.send_message(f"**Lỗi API:** {data.get('status')}")
+            await ctx.send(f"**Lỗi API:** {data.get('message', 'Lỗi không xác định từ API rút gọn.')}")
+    except requests.exceptions.RequestException as e:
+        await ctx.send(f"**Lỗi kết nối API rút gọn:** Vui lòng thử lại sau. ({e})")
+    except json.JSONDecodeError:
+        await ctx.send(f"**Lỗi giải mã dữ liệu từ API rút gọn.**")
     except Exception as e:
-        await interaction.response.send_message(f"**Lỗi hệ thống:** {e}")
+        await ctx.send(f"**Lỗi hệ thống không mong muốn:** {e}")
 
-# Kiểm Tra Key Hợp Lệ
-async def check_key_valid(interaction, key):
+# --- Kiểm tra Key Hợp Lệ ---
+async def check_key_valid(ctx: commands.Context, key: str) -> bool:
+    """Kiểm tra xem key có hợp lệ và chưa được sử dụng không."""
     try:
-        # Đây là URL cho keys.json, giả định vẫn nằm trên hosting và có thể truy cập
-        res = requests.get("https://xumivnstore.site/keys.json", timeout=5)
-        res.raise_for_status() # Ném lỗi nếu có vấn đề về HTTP
+        res = requests.get("https://xumivnstore.site/keys.json", timeout=10)
+        res.raise_for_status()
         key_data = res.json()
     except requests.exceptions.RequestException as e:
-        await interaction.response.send_message(f"Lỗi khi kiểm tra key từ hosting: {e}", ephemeral=True)
+        await ctx.send(f"Lỗi khi kiểm tra key từ máy chủ: {e}")
         return False
     except json.JSONDecodeError as e:
-        await interaction.response.send_message(f"Lỗi giải mã JSON từ keys.json: {e}", ephemeral=True)
+        await ctx.send(f"Lỗi giải mã JSON từ keys.json: {e}. Vui lòng kiểm tra file keys.json trên hosting.")
         return False
 
     if key not in key_data:
-        await interaction.response.send_message(f"**Key `{key}` không hợp lệ hoặc không tồn tại.**")
+        await ctx.send(f"**Key `{key}` không hợp lệ hoặc không tồn tại.**")
         return False
     if key in used_keys:
-        await interaction.response.send_message(f"**Key `{key}` đã được sử dụng để lấy tài khoản.**")
+        await ctx.send(f"**Key `{key}` đã được sử dụng để lấy tài khoản khác.**")
         return False
     return True
 
-# Lấy Tài Khoản (Người dùng)
-async def get_account(interaction, key, accounts_dict, account_type, write_url):
-    if not await check_key_valid(interaction, key):
+# --- Hàm Cấp Tài Khoản Chung (Dành cho Người dùng) ---
+async def give_account(ctx: commands.Context, key: str, accounts_dict: dict, account_type: str, write_url: str):
+    """Cấp một tài khoản cho người dùng nếu key hợp lệ và tài khoản còn."""
+    if not await check_key_valid(ctx, key):
         return
 
     if not accounts_dict:
-        await interaction.response.send_message(f"**Không còn tài khoản {account_type} để cấp.**")
+        await ctx.send(f"**Không còn tài khoản {account_type} để cấp.**")
         return
+    
     try:
-        # Lấy một item ngẫu nhiên và xóa nó
         email, password = accounts_dict.popitem()
+        
         used_keys.add(key)
-        save_ids(WRITE_USED_KEYS_URL, used_keys) # Lưu key đã sử dụng
-        save_accounts(write_url, accounts_dict) # Lưu lại danh sách tài khoản sau khi cấp
-        await interaction.response.send_message(
-            f"**Tài khoản cho key `{key}`:**\nEmail: `{email}`\nMật khẩu: `{password}`", ephemeral=True,
+        save_data_from_api(WRITE_USED_KEYS_URL, used_keys)
+
+        save_data_from_api(write_url, accounts_dict)
+        
+        await ctx.send(
+            f"**✅ Tài khoản {account_type} cho key `{key}` của bạn:**\n"
+            f"Email: ``{email}``\nMật khẩu: ``{password}``\n"
+            f"Hãy đổi mật khẩu ngay sau khi nhận được tài khoản để bảo mật!"
         )
     except Exception as e:
-        await interaction.response.send_message(f"**Lỗi khi cấp tài khoản {account_type}:** {e}", ephemeral=True)
+        await ctx.send(f"**Lỗi khi cấp tài khoản {account_type}:** {e}")
 
-@tree.command(name="gmail", description="Nhận tài khoản Email bằng key duy nhất.")
-@app_commands.describe(key="Key dùng để nhận tài khoản")
-async def gmail(interaction: discord.Interaction, key: str):
-    await get_account(interaction, key, accounts_mail, "Email", WRITE_MAIL_URL)
+# --- Định nghĩa các Prefix Command để lấy tài khoản ---
+@bot.command(name="gmail", help="Nhận tài khoản Email bằng key duy nhất.")
+async def gmail(ctx: commands.Context, key: str):
+    await give_account(ctx, key, accounts_mail, "Email", WRITE_MAIL_URL)
 
-@tree.command(name="ugphone", description="Nhận tài khoản UGPhone bằng key duy nhất.")
-@app_commands.describe(key="Key dùng để nhận tài khoản")
-async def ugphone(interaction: discord.Interaction, key: str):
-    await get_account(interaction, key, accounts_ug, "UGPhone", WRITE_UG_URL)
+@bot.command(name="ugphone", help="Nhận tài khoản UGPhone bằng key duy nhất.")
+async def ugphone(ctx: commands.Context, key: str):
+    await give_account(ctx, key, accounts_ug, "UGPhone", WRITE_UG_URL)
 
-@tree.command(name="redfinger", description="Nhận tài khoản RedFinger Cloud bằng key duy nhất.")
-@app_commands.describe(key="Key dùng để nhận tài khoản")
-async def redfinger(interaction: discord.Interaction, key: str):
-    await get_account(interaction, key, accounts_red, "RedFinger", WRITE_RED_URL)
+@bot.command(name="redfinger", help="Nhận tài khoản RedFinger Cloud bằng key duy nhất.")
+async def redfinger(ctx: commands.Context, key: str):
+    await give_account(ctx, key, accounts_red, "RedFinger", WRITE_RED_URL)
 
-@tree.command(name="ldcloud", description="Nhận tài khoản LD Cloud bằng key duy nhất.")
-@app_commands.describe(key="Key dùng để nhận tài khoản")
-async def ldcloud(interaction: discord.Interaction, key: str):
-    await get_account(interaction, key, accounts_ld, "LD Cloud", WRITE_LD_URL)
+@bot.command(name="ldcloud", help="Nhận tài khoản LD Cloud bằng key duy nhất.")
+async def ldcloud(ctx: commands.Context, key: str):
+    await give_account(ctx, key, accounts_ld, "LD Cloud", WRITE_LD_URL)
 
-# Upload Tài Khoản (Admin)
-async def upload_account(interaction, email, password, accounts_dict, account_type, write_url):
-    if not is_admin(interaction.user):
-        await interaction.response.send_message("Bạn không có quyền dùng lệnh này.", ephemeral=True)
+# --- Hàm Upload Tài Khoản Chung (Dành cho Admin) ---
+async def admin_upload_account(ctx: commands.Context, email: str, password: str, accounts_dict: dict, account_type: str, write_url: str):
+    """Thêm tài khoản mới vào danh sách."""
+    if not is_admin(ctx.author.id):
+        await ctx.send("Bạn không có quyền dùng lệnh này.")
         return
 
     if email in accounts_dict:
-        await interaction.response.send_message(f"**Email `{email}` đã tồn tại trong {account_type}.**", ephemeral=True)
+        await ctx.send(f"**Email `{email}` đã tồn tại trong {account_type}.**")
         return
+    
     accounts_dict[email] = password
-    save_accounts(write_url, accounts_dict) # Lưu lại sau khi thêm
-    await interaction.response.send_message(f"**Đã thêm tài khoản {account_type}:**\nEmail: `{email}`\nMật khẩu: `{password}`", ephemeral=True)
+    save_data_from_api(write_url, accounts_dict)
+    await ctx.send(
+        f"**✅ Đã thêm tài khoản {account_type}:**\nEmail: ``{email}``\nMật khẩu: ``{password}``"
+    )
 
-@tree.command(name="upgmail", description="(Admin) Thêm tài khoản Email mới.")
-@app_commands.describe(email="Email tài khoản", password="Mật khẩu")
-async def upgmail(interaction: discord.Interaction, email: str, password: str):
-    await upload_account(interaction, email, password, accounts_mail, "Email", WRITE_MAIL_URL)
+# --- Định nghĩa các Prefix Command để upload tài khoản (Admin) ---
+@bot.command(name="upgmail", help="(Admin) Thêm tài khoản Email mới.")
+async def upgmail(ctx: commands.Context, email: str, password: str):
+    await admin_upload_account(ctx, email, password, accounts_mail, "Email", WRITE_MAIL_URL)
 
-@tree.command(name="upugphone", description="(Admin) Thêm tài khoản UGPhone mới.")
-@app_commands.describe(email="Email tài khoản", password="Mật khẩu")
-async def upugphone(interaction: discord.Interaction, email: str, password: str):
-    await upload_account(interaction, email, password, accounts_ug, "UGPhone", WRITE_UG_URL)
+@bot.command(name="upugphone", help="(Admin) Thêm tài khoản UGPhone mới.")
+async def upugphone(ctx: commands.Context, email: str, password: str):
+    await admin_upload_account(ctx, email, password, accounts_ug, "UGPhone", WRITE_UG_URL)
 
-@tree.command(name="upredfinger", description="(Admin) Thêm tài khoản RedFonger mới.")
-@app_commands.describe(email="Email tài khoản", password="Mật khẩu")
-async def upredfinger(interaction: discord.Interaction, email: str, password: str):
-    await upload_account(interaction, email, password, accounts_red, "RedFonger", WRITE_RED_URL)
+@bot.command(name="upredfinger", help="(Admin) Thêm tài khoản RedFinger mới.")
+async def upredfinger(ctx: commands.Context, email: str, password: str):
+    await admin_upload_account(ctx, email, password, accounts_red, "RedFinger", WRITE_RED_URL)
 
-@tree.command(name="upldcloud", description="(Admin) Thêm tài khoản LD Cloud mới.")
-@app_commands.describe(email="Email tài khoản", password="Mật khẩu")
-async def upldcloud(interaction: discord.Interaction, email: str, password: str):
-    await upload_account(interaction, email, password, accounts_ld, "LD Cloud", WRITE_LD_URL)
+@bot.command(name="upldcloud", help="(Admin) Thêm tài khoản LD Cloud mới.")
+async def upldcloud(ctx: commands.Context, email: str, password: str):
+    await admin_upload_account(ctx, email, password, accounts_ld, "LD Cloud", WRITE_LD_URL)
 
-# List Tài Khoản (Admin)
-async def list_accounts(interaction, accounts_dict, account_type):
-    if not is_admin(interaction.user):
-        await interaction.response.send_message("Bạn không có quyền sử dụng lệnh này.", ephemeral=True)
+# --- Hàm List Tài Khoản Chung (Dành cho Admin) ---
+async def admin_list_accounts(ctx: commands.Context, accounts_dict: dict, account_type: str):
+    """Liệt kê tất cả các tài khoản còn lại trong một loại cụ thể."""
+    if not is_admin(ctx.author.id):
+        await ctx.send("Bạn không có quyền sử dụng lệnh này.")
         return
 
     if not accounts_dict:
-        await interaction.response.send_message(f"**Không còn tài khoản {account_type} nào.**", ephemeral=True)
+        await ctx.send(f"**Không còn tài khoản {account_type} nào.**")
         return
-    message = f"**Danh sách tài khoản {account_type} còn lại:**\n"
+    
+    message = f"**Danh sách tài khoản {account_type} còn lại ({len(accounts_dict)} tài khoản):**\n"
+    current_length = len(message)
+    max_length = 1900
+
     for email in accounts_dict:
-        message += f"- `{email}`\n"
-    await interaction.response.send_message(message, ephemeral=True)
+        line = f"- ``{email}``\n"
+        if current_length + len(line) > max_length:
+            await ctx.send(message)
+            message = line
+            current_length = len(line)
+        else:
+            message += line
+            current_length += len(line)
+    
+    if message:
+        await ctx.send(message)
 
-@tree.command(name="listgmail", description="(Admin) Xem danh sách tài khoản Email còn lại.")
-async def listgmail(interaction: discord.Interaction):
-    await list_accounts(interaction, accounts_mail, "Email")
+# --- Định nghĩa các Prefix Command để list tài khoản (Admin) ---
+@bot.command(name="listgmail", help="(Admin) Xem danh sách tài khoản Email còn lại.")
+async def listgmail(ctx: commands.Context):
+    await admin_list_accounts(ctx, accounts_mail, "Email")
 
-@tree.command(name="listugphone", description="(Admin) Xem danh sách tài khoản UGPhone còn lại.")
-async def listugphone(interaction: discord.Interaction):
-    await list_accounts(interaction, accounts_ug, "UGPhone")
+@bot.command(name="listugphone", help="(Admin) Xem danh sách tài khoản UGPhone còn lại.")
+async def listugphone(ctx: commands.Context):
+    await admin_list_accounts(ctx, accounts_ug, "UGPhone")
 
-@tree.command(name="listredfinger", description="(Admin) Xem danh sách tài khoản RedFonger còn lại.")
-async def listredfinger(interaction: discord.Interaction):
-    await list_accounts(interaction, accounts_red, "RedFinger")
+@bot.command(name="listredfinger", help="(Admin) Xem danh sách tài khoản RedFinger còn lại.")
+async def listredfinger(ctx: commands.Context):
+    await admin_list_accounts(ctx, accounts_red, "RedFinger")
 
-@tree.command(name="listldcloud", description="(Admin) Xem danh sách tài khoản LD Cloud còn lại.")
-async def listldcloud(interaction: discord.Interaction):
-    await list_accounts(interaction, accounts_ld, "LD Cloud")
+@bot.command(name="listldcloud", help="(Admin) Xem danh sách tài khoản LD Cloud còn lại.")
+async def listldcloud(ctx: commands.Context):
+    await admin_list_accounts(ctx, accounts_ld, "LD Cloud")
 
-# Xóa Tài Khoản (Admin)
-async def delete_account(interaction, email, accounts_dict, account_type, write_url):
-    if not is_admin(interaction.user):
-        await interaction.response.send_message("Bạn không có quyền dùng lệnh này.", ephemeral=True)
+# --- Hàm Xóa Tài Khoản Chung (Dành cho Admin) ---
+async def admin_delete_account(ctx: commands.Context, email: str, accounts_dict: dict, account_type: str, write_url: str):
+    """Xóa một tài khoản khỏi danh sách."""
+    if not is_admin(ctx.author.id):
+        await ctx.send("Bạn không có quyền dùng lệnh này.")
         return
 
     if email not in accounts_dict:
-        await interaction.response.send_message(f"**Email `{email}` không tồn tại trong {account_type}.**", ephemeral=True)
+        await ctx.send(f"**Email `{email}` không tồn tại trong {account_type}.**")
         return
+    
     del accounts_dict[email]
-    save_accounts(write_url, accounts_dict) # Lưu lại sau khi xóa
-    await interaction.response.send_message(f"**Đã xóa tài khoản {account_type} với email `{email}`.**", ephemeral=True)
+    save_data_from_api(write_url, accounts_dict)
+    await ctx.send(
+        f"**✅ Đã xóa tài khoản {account_type} với email ``{email}``.**"
+    )
 
-@tree.command(name="dellgmail", description="(Admin) Xóa tài khoản Gmail.")
-@app_commands.describe(email="Email tài khoản cần xóa")
-async def dellgmail(interaction: discord.Interaction, email: str):
-    await delete_account(interaction, email, accounts_mail, "Email", WRITE_MAIL_URL)
+# --- Định nghĩa các Prefix Command để xóa tài khoản (Admin) ---
+@bot.command(name="dellgmail", help="(Admin) Xóa tài khoản Gmail.")
+async def dellgmail(ctx: commands.Context, email: str):
+    await admin_delete_account(ctx, email, accounts_mail, "Email", WRITE_MAIL_URL)
 
-@tree.command(name="dellugphone", description="(Admin) Xóa tài khoản UGPhone.")
-@app_commands.describe(email="Email tài khoản cần xóa")
-async def dellugphone(interaction: discord.Interaction, email: str):
-    await delete_account(interaction, email, accounts_ug, "UGPhone", WRITE_UG_URL)
+@bot.command(name="dellugphone", help="(Admin) Xóa tài khoản UGPhone.")
+async def dellugphone(ctx: commands.Context, email: str):
+    await admin_delete_account(ctx, email, accounts_ug, "UGPhone", WRITE_UG_URL)
 
-@tree.command(name="dellredfinger", description="(Admin) Xóa tài khoản RedFonger.")
-@app_commands.describe(email="Email tài khoản cần xóa")
-async def dellredfinger(interaction: discord.Interaction, email: str):
-    await delete_account(interaction, email, accounts_red, "RedFinger", WRITE_RED_URL)
+@bot.command(name="dellredfinger", help="(Admin) Xóa tài khoản RedFinger.")
+async def dellredfinger(ctx: commands.Context, email: str):
+    await admin_delete_account(ctx, email, accounts_red, "RedFinger", WRITE_RED_URL)
 
-@tree.command(name="delldcloud", description="(Admin) Xóa tài khoản LD Cloud.")
-@app_commands.describe(email="Email tài khoản cần xóa")
-async def delldcloud(interaction: discord.Interaction, email: str):
-    await delete_account(interaction, email, accounts_ld, "LD Cloud", WRITE_LD_URL)
+@bot.command(name="delldcloud", help="(Admin) Xóa tài khoản LD Cloud.")
+async def delldcloud(ctx: commands.Context, email: str):
+    await admin_delete_account(ctx, email, accounts_ld, "LD Cloud", WRITE_LD_URL)
 
-# Quản Lý Admin
-@tree.command(name="setowner", description="Thêm admin mới.")
-@app_commands.describe(user="Người dùng muốn thêm làm admin (tag người dùng)")
-async def setowner(interaction: discord.Interaction, user: discord.Member):
-    if not is_admin(interaction.user):
-        await interaction.response.send_message("Bạn không có quyền thực hiện thao tác này.", ephemeral=True)
+# --- Quản Lý Admin ---
+@bot.command(name="setowner", help="(Admin) Thêm một người dùng làm admin mới.")
+async def setowner(ctx: commands.Context, user: discord.Member): # discord.Member tự động phân giải từ mention/ID
+    if not is_admin(ctx.author.id):
+        await ctx.send("Bạn không có quyền thực hiện thao tác này.")
         return
     
     user_id = user.id
     if user_id in admin_ids:
-        await interaction.response.send_message(f"**{user.display_name}** đã là admin rồi.", ephemeral=True)
+        await ctx.send(f"**{user.display_name}** đã là admin rồi.")
         return
 
     admin_ids.add(user_id)
-    save_ids(WRITE_ADMINS_URL, admin_ids)
-    await interaction.response.send_message(f"**Đã thêm {user.display_name} ({user_id}) làm admin.**", ephemeral=True)
+    save_data_from_api(WRITE_ADMINS_URL, admin_ids)
+    await ctx.send(f"**✅ Đã thêm {user.display_name} ({user_id}) làm admin.**")
 
-@tree.command(name="delowner", description="Gỡ admin.")
-@app_commands.describe(user="Người dùng muốn gỡ khỏi admin (tag người dùng)")
-async def delowner(interaction: discord.Interaction, user: discord.Member):
-    if not is_admin(interaction.user):
-        await interaction.response.send_message("Bạn không có quyền thực hiện thao tác này.", ephemeral=True)
+@bot.command(name="delowner", help="(Admin) Gỡ một người dùng khỏi danh sách admin.")
+async def delowner(ctx: commands.Context, user: discord.Member):
+    if not is_admin(ctx.author.id):
+        await ctx.send("Bạn không có quyền thực hiện thao tác này.")
         return
     
     user_id = user.id
-    if user_id == 1364169704943652924: # ID admin chính (bảo vệ)
-        await interaction.response.send_message("Không thể gỡ admin chính.", ephemeral=True)
+    if user_id == MAIN_ADMIN_ID:
+        await ctx.send("Không thể gỡ admin chính.")
         return
-    if user_id == interaction.user.id:
-        await interaction.response.send_message("Bạn không thể tự gỡ chính mình.", ephemeral=True)
+    if user_id == ctx.author.id:
+        await ctx.send("Bạn không thể tự gỡ chính mình.")
         return
+    
     if user_id in admin_ids:
         admin_ids.remove(user_id)
-        save_ids(WRITE_ADMINS_URL, admin_ids)
-        await interaction.response.send_message(f"**Đã gỡ {user.display_name} ({user_id}) khỏi danh sách admin.**", ephemeral=True)
+        save_data_from_api(WRITE_ADMINS_URL, admin_ids)
+        await ctx.send(f"**✅ Đã gỡ {user.display_name} ({user_id}) khỏi danh sách admin.**")
     else:
-        await interaction.response.send_message(f"**{user.display_name}** không phải là admin.", ephemeral=True)
+        await ctx.send(f"**{user.display_name}** không phải là admin.")
 
-@tree.command(name="listadmin", description="Danh sách admin hiện tại.")
-async def listadmin(interaction: discord.Interaction):
-    if not is_admin(interaction.user):
-        await interaction.response.send_message("Bạn không có quyền sử dụng lệnh này.", ephemeral=True)
+@bot.command(name="listadmin", help="(Admin) Xem danh sách admin hiện tại.")
+async def listadmin(ctx: commands.Context):
+    if not is_admin(ctx.author.id):
+        await ctx.send("Bạn không có quyền sử dụng lệnh này.")
         return
     
     if not admin_ids:
-        await interaction.response.send_message("Hiện không có admin nào được thêm (chỉ có admin chính).", ephemeral=True)
+        await ctx.send("Hiện không có admin nào được thêm (chỉ có admin chính).")
         return
 
     admin_names = []
     for admin_id in admin_ids:
         try:
-            # Fetch the user object to get their display name
-            member = interaction.guild.get_member(admin_id) # Try to get member from guild first
+            member = ctx.guild.get_member(admin_id) if ctx.guild else None
             if member is None:
-                member = await bot.fetch_user(admin_id) # Fallback to fetching user if not in guild cache
-            admin_names.append(f"- {member.display_name} (ID: {admin_id})")
+                member = await bot.fetch_user(admin_id)
+            admin_names.append(f"- ``{member.display_name}`` (ID: ``{admin_id}``)")
         except discord.NotFound:
-            admin_names.append(f"- Người dùng không tìm thấy (ID: {admin_id})")
+            admin_names.append(f"- Người dùng không tìm thấy (ID: ``{admin_id}``)")
         except Exception as e:
-            admin_names.append(f"- Lỗi khi lấy tên (ID: {admin_id}): {e}")
+            admin_names.append(f"- Lỗi khi lấy tên (ID: ``{admin_id}``): {e}")
 
     admins_list = "\n".join(admin_names)
-    await interaction.response.send_message(f"**Danh sách admin:**\n{admins_list}", ephemeral=True)
+    await ctx.send(f"**📝 Danh sách admin:**\n{admins_list}")
 
+# --- Chạy Bot ---
 bot.run(os.environ["DISCORD_TOKEN"])
