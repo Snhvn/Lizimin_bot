@@ -136,14 +136,14 @@ async def on_command_error(ctx, error):
 
 # --- Lệnh `!info` (Giới thiệu bot và các lệnh) ---
 @bot.command(name="info", help="Giới thiệu về bot và các lệnh khả dụng.")
-@commands.cooldown(1, 5, commands.BucketType.user) # 1 lần dùng mỗi 5 giây cho mỗi người dùng
+@commands.cooldown(1, 10, commands.BucketType.user) # 1 lần dùng mỗi 5 giây cho mỗi người dùng
 async def info(ctx: commands.Context):
     is_admin_user = is_admin(ctx.author.id)
 
     description = (
         "**Lệnh dành cho người dùng:**\n"
         "``!getkey`` - Lấy link key rút gọn để nhận tài khoản.\n"
-        "``!gmail <key>`` - Lấy tài khoản Email.\n"
+        "``!mail <key>`` - Lấy tài khoản Email.\n"
         "``!ugphone <key>`` - Lấy tài khoản UGPhone.\n"
         "``!redfinger <key>`` - Lấy tài khoản RedFinger.\n"
         "``!ldcloud <key>`` - Lấy tài khoản LD Cloud.\n"
@@ -152,12 +152,12 @@ async def info(ctx: commands.Context):
     if is_admin_user:
         description += (
             "\n**Lệnh dành cho Admin:**\n"
-            "``!upgmail <email> <password>`` - Thêm tài khoản Email.\n"
-            "``!upugphone <email> <password>`` - Thêm tài khoản UGPhone.\n"
-            "``!upredfinger <email> <password>`` - Thêm tài khoản RedFinger.\n"
-            "``!upldcloud <email> <password>`` - Thêm tài khoản LD Cloud.\n"
-            "``!upuglocal <code_string>`` - Thêm đoạn code/tài khoản UGLocal (chỉ tài khoản/code, không mật khẩu).\n" # Thêm lệnh admin mới
-            "``!listgmail`` - Xem danh sách tài khoản Email còn lại.\n"
+            "``!lmail <email> <password>`` - Thêm tài khoản Email.\n"
+            "``!lugphone <email> <password>`` - Thêm tài khoản UGPhone.\n"
+            "``!lredfinger <email> <password>`` - Thêm tài khoản RedFinger.\n"
+            "``!lldcloud <email> <password>`` - Thêm tài khoản LD Cloud.\n"
+            "``!luglocal <code_string>`` - Thêm đoạn code/tài khoản UGLocal (chỉ tài khoản/code, không mật khẩu).\n" # Thêm lệnh admin mới
+            "``!listmail`` - Xem danh sách tài khoản Email còn lại.\n"
             "``!listugphone`` - Xem danh sách tài khoản UGPhone còn lại.\n"
             "``!listredfinger`` - Xem danh sách tài khoản RedFinger còn lại.\n"
             "``!listldcloud`` - Xem danh sách tài khoản LD Cloud còn lại.\n"
@@ -166,10 +166,10 @@ async def info(ctx: commands.Context):
             "``!dellugphone <email>`` - Xóa tài khoản UGPhone.\n"
             "``!dellredfinger <email>`` - Xóa tài khoản RedFinger.\n"
             "``!delldcloud <email>`` - Xóa tài khoản LD Cloud.\n"
-            "``!deluglocal <code_string>`` - Xóa đoạn code/tài khoản UGLocal.\n" # Thêm lệnh admin mới
-            "``!setowner <user_mention_or_id>`` - Thêm admin mới.\n"
-            "``!delowner <user_mention_or_id>`` - Gỡ admin.\n"
-            "``!listadmin`` - Xem danh sách admin.\n"
+            "``!delluglocal <code_string>`` - Xóa đoạn code/tài khoản UGLocal.\n" # Thêm lệnh admin mới
+            "``!setadm <user_mention_or_id>`` - Thêm admin mới.\n"
+            "``!delladm <user_mention_or_id>`` - Gỡ admin.\n"
+            "``!listadm`` - Xem danh sách admin.\n"
         )
     embed = Embed(
         title="🤖 Thông tin Bot và Các Lệnh",
@@ -191,7 +191,7 @@ async def info(ctx: commands.Context):
 
 # --- Lệnh `!getkey` (Lấy link key) ---
 @bot.command(name="getkey", help="Lấy link key rút gọn để sử dụng các lệnh khác.")
-@commands.cooldown(1, 5, commands.BucketType.user) # 1 lần dùng mỗi 5 giây cho mỗi người dùng
+@commands.cooldown(1, 10, commands.BucketType.user) # 1 lần dùng mỗi 5 giây cho mỗi người dùng
 async def getkey(ctx: commands.Context):
     user_id = str(ctx.author.id)
     try:
@@ -338,28 +338,28 @@ async def give_single_account(ctx: commands.Context, key: str, accounts_set: set
 
 # --- Định nghĩa các Prefix Command để lấy tài khoản ---
 # Các lệnh này sẽ gọi hàm give_account hoặc give_single_account đã sửa đổi
-@bot.command(name="gmail", help="Nhận tài khoản Email bằng key duy nhất.")
-@commands.cooldown(1, 5, commands.BucketType.user) # 1 lần dùng mỗi 5 giây cho mỗi người dùng
-async def gmail(ctx: commands.Context, key: str):
+@bot.command(name="mail", help="Nhận tài khoản Email bằng key duy nhất.")
+@commands.cooldown(1, 10, commands.BucketType.user) # 1 lần dùng mỗi 5 giây cho mỗi người dùng
+async def mail(ctx: commands.Context, key: str):
     await give_account(ctx, key, accounts_mail, "Email", WRITE_MAIL_URL)
 
 @bot.command(name="ugphone", help="Nhận tài khoản UGPhone bằng key duy nhất.")
-@commands.cooldown(1, 5, commands.BucketType.user) # 1 lần dùng mỗi 5 giây cho mỗi người dùng
+@commands.cooldown(1, 10, commands.BucketType.user) # 1 lần dùng mỗi 5 giây cho mỗi người dùng
 async def ugphone(ctx: commands.Context, key: str):
     await give_account(ctx, key, accounts_ug, "UGPhone", WRITE_UG_URL)
 
 @bot.command(name="redfinger", help="Nhận tài khoản RedFinger Cloud bằng key duy nhất.")
-@commands.cooldown(1, 5, commands.BucketType.user) # 1 lần dùng mỗi 5 giây cho mỗi người dùng
+@commands.cooldown(1, 10, commands.BucketType.user) # 1 lần dùng mỗi 5 giây cho mỗi người dùng
 async def redfinger(ctx: commands.Context, key: str):
     await give_account(ctx, key, accounts_red, "RedFinger", WRITE_RED_URL)
 
 @bot.command(name="ldcloud", help="Nhận tài khoản LD Cloud bằng key duy nhất.")
-@commands.cooldown(1, 5, commands.BucketType.user) # 1 lần dùng mỗi 5 giây cho mỗi người dùng
+@commands.cooldown(1, 10, commands.BucketType.user) # 1 lần dùng mỗi 5 giây cho mỗi người dùng
 async def ldcloud(ctx: commands.Context, key: str):
     await give_account(ctx, key, accounts_ld, "LD Cloud", WRITE_LD_URL)
 
 @bot.command(name="uglocal", help="Nhận đoạn code/tài khoản UGLocal (chỉ tài khoản) bằng key duy nhất.")
-@commands.cooldown(1, 5, commands.BucketType.user)
+@commands.cooldown(1, 10, commands.BucketType.user)
 async def uglocal(ctx: commands.Context, key: str):
     await give_single_account(ctx, key, accounts_uglocal, "UGLocal", WRITE_UGLOCAL_URL)
 
@@ -399,24 +399,24 @@ async def admin_upload_single_account(ctx: commands.Context, account_string: str
 
 # --- Định nghĩa các Prefix Command để upload tài khoản (Admin) ---
 # Thường các lệnh admin không cần cooldown, nhưng có thể thêm nếu muốn
-@bot.command(name="upgmail", help="(Admin) Thêm tài khoản Email mới.")
-async def upgmail(ctx: commands.Context, email: str, password: str):
+@bot.command(name="lmail", help="(Admin) Thêm tài khoản Email mới.")
+async def lmail(ctx: commands.Context, email: str, password: str):
     await admin_upload_account(ctx, email, password, accounts_mail, "Email", WRITE_MAIL_URL)
 
-@bot.command(name="upugphone", help="(Admin) Thêm tài khoản UGPhone mới.")
-async def upugphone(ctx: commands.Context, email: str, password: str):
+@bot.command(name="lugphone", help="(Admin) Thêm tài khoản UGPhone mới.")
+async def lugphone(ctx: commands.Context, email: str, password: str):
     await admin_upload_account(ctx, email, password, accounts_ug, "UGPhone", WRITE_UG_URL)
 
-@bot.command(name="upredfinger", help="(Admin) Thêm tài khoản RedFonger mới.")
-async def upredfinger(ctx: commands.Context, email: str, password: str):
+@bot.command(name="lredfinger", help="(Admin) Thêm tài khoản RedFonger mới.")
+async def lredfinger(ctx: commands.Context, email: str, password: str):
     await admin_upload_account(ctx, email, password, accounts_red, "RedFinger", WRITE_RED_URL)
 
-@bot.command(name="upldcloud", help="(Admin) Thêm tài khoản LD Cloud mới.")
-async def upldcloud(ctx: commands.Context, email: str, password: str):
+@bot.command(name="lldcloud", help="(Admin) Thêm tài khoản LD Cloud mới.")
+async def lldcloud(ctx: commands.Context, email: str, password: str):
     await admin_upload_account(ctx, email, password, accounts_ld, "LD Cloud", WRITE_LD_URL)
 
-@bot.command(name="upuglocal", help="(Admin) Thêm đoạn code/tài khoản UGLocal mới.")
-async def upuglocal(ctx: commands.Context, *, account_string: str): # Dùng *, để lấy cả chuỗi dài
+@bot.command(name="luglocal", help="(Admin) Thêm đoạn code/tài khoản UGLocal mới.")
+async def luglocal(ctx: commands.Context, *, account_string: str): # Dùng *, để lấy cả chuỗi dài
     await admin_upload_single_account(ctx, account_string, accounts_uglocal, "UGLocal", WRITE_UGLOCAL_URL)
 
 # --- Hàm List Tài Khoản Chung (Dành cho Admin) ---
@@ -476,8 +476,8 @@ async def admin_list_single_accounts(ctx: commands.Context, accounts_set: set, a
         await ctx.send(message)
 
 # --- Định nghĩa các Prefix Command để list tài khoản (Admin) ---
-@bot.command(name="listgmail", help="(Admin) Xem danh sách tài khoản Email còn lại.")
-async def listgmail(ctx: commands.Context):
+@bot.command(name="listmail", help="(Admin) Xem danh sách tài khoản Email còn lại.")
+async def listmail(ctx: commands.Context):
     await admin_list_accounts(ctx, accounts_mail, "Email")
 
 @bot.command(name="listugphone", help="(Admin) Xem danh sách tài khoản UGPhone còn lại.")
@@ -531,8 +531,8 @@ async def admin_delete_single_account(ctx: commands.Context, account_string: str
     )
 
 # --- Định nghĩa các Prefix Command để xóa tài khoản (Admin) ---
-@bot.command(name="dellgmail", help="(Admin) Xóa tài khoản Gmail.")
-async def dellgmail(ctx: commands.Context, email: str):
+@bot.command(name="dellmail", help="(Admin) Xóa tài khoản Gmail.")
+async def dellmail(ctx: commands.Context, email: str):
     await admin_delete_account(ctx, email, accounts_mail, "Email", WRITE_MAIL_URL)
 
 @bot.command(name="dellugphone", help="(Admin) Xóa tài khoản UGPhone.")
@@ -547,13 +547,13 @@ async def dellredfinger(ctx: commands.Context, email: str):
 async def delldcloud(ctx: commands.Context, email: str):
     await admin_delete_account(ctx, email, accounts_ld, "LD Cloud", WRITE_LD_URL)
 
-@bot.command(name="deluglocal", help="(Admin) Xóa đoạn code/tài khoản UGLocal.")
-async def deluglocal(ctx: commands.Context, *, account_string: str): # Dùng *, để lấy cả chuỗi dài
+@bot.command(name="delluglocal", help="(Admin) Xóa đoạn code/tài khoản UGLocal.")
+async def delluglocal(ctx: commands.Context, *, account_string: str): # Dùng *, để lấy cả chuỗi dài
     await admin_delete_single_account(ctx, account_string, accounts_uglocal, "UGLocal", WRITE_UGLOCAL_URL)
 
 # --- Quản Lý Admin ---
-@bot.command(name="setowner", help="(Admin) Thêm một người dùng làm admin mới.")
-async def setowner(ctx: commands.Context, user: discord.Member):
+@bot.command(name="setadm", help="(Admin) Thêm một người dùng làm admin mới.")
+async def setadm(ctx: commands.Context, user: discord.Member):
     if not is_admin(ctx.author.id):
         await ctx.send("Bạn không có quyền thực hiện thao tác này.")
         return
@@ -567,8 +567,8 @@ async def setowner(ctx: commands.Context, user: discord.Member):
     save_data_from_api(WRITE_ADMINS_URL, admin_ids)
     await ctx.send(f"**✅ Đã thêm {user.display_name} ({user_id}) làm admin.**")
 
-@bot.command(name="delowner", help="(Admin) Gỡ một người dùng khỏi danh sách admin.")
-async def delowner(ctx: commands.Context, user: discord.Member):
+@bot.command(name="delladm", help="(Admin) Gỡ một người dùng khỏi danh sách admin.")
+async def delladm(ctx: commands.Context, user: discord.Member):
     if not is_admin(ctx.author.id):
         await ctx.send("Bạn không có quyền thực hiện thao tác này.")
         return
@@ -588,8 +588,8 @@ async def delowner(ctx: commands.Context, user: discord.Member):
     else:
         await ctx.send(f"**{user.display_name}** không phải là admin.")
 
-@bot.command(name="listadmin", help="(Admin) Xem danh sách admin hiện tại.")
-async def listadmin(ctx: commands.Context):
+@bot.command(name="listadm", help="(Admin) Xem danh sách admin hiện tại.")
+async def listadm(ctx: commands.Context):
     if not is_admin(ctx.author.id):
         await ctx.send("Bạn không có quyền sử dụng lệnh này.")
         return
