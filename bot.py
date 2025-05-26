@@ -322,7 +322,7 @@ async def give_single_account(ctx: commands.Context, key: str, accounts_set: set
         # GỬI TIN NHẮN CODE/TÀI KHOẢN VÀO DM CỦA NGƯỜI DÙNG
         await ctx.author.send(
             f"**✅ Đoạn code/tài khoản {account_type} cho key `{key}` của bạn:**\n"
-            f"```\n{account_data}\n```\n" 
+            f"``\n{account_data}\n``\n" 
             f"Vui lòng sử dụng đoạn code/tài khoản này!"
         )
         # THÔNG BÁO NGẮN GỌN TRONG KÊNH CHAT
