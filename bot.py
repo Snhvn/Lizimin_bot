@@ -1,12 +1,16 @@
 import discord
 from discord.ext import commands
 from discord import Embed, Colour
+from dotenv import load_dotenv
 import requests
 import time
 import os
 import json
 import threading
+import asyncio
 from flask import Flask
+# ---- Token bot của bạn ---
+TOKEN = os.getenv("DISCORD_TOKEN")
 
 # --- Cấu hình Bot Discord ---
 intents = discord.Intents.default()
@@ -614,4 +618,4 @@ async def listadm(ctx: commands.Context):
     await ctx.send(f"**📝 Danh sách admin:**\n{admins_list}")
 
 # --- Chạy Bot ---
-bot.run(os.environ["DISCORD_TOKEN"])
+bot.run(TOKEN)
