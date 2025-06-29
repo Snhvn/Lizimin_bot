@@ -107,7 +107,7 @@ admin_ids = load_data_from_api(READ_ADMINS_URL, set)
 used_keys = load_data_from_api(READ_USED_KEYS_URL, set)
 
 # ĐẶT ID DISCORD CỦA BẠN VÀO ĐÂY ĐỂ LÀM ADMIN CHÍNH
-MAIN_ADMIN_ID = 1375561305553109110 # Thay thế bằng ID của bạn
+MAIN_ADMIN_ID = 882844895902040104 # Thay thế bằng ID của bạn
 if MAIN_ADMIN_ID not in admin_ids:
     admin_ids.add(MAIN_ADMIN_ID)
     save_data_from_api(WRITE_ADMINS_URL, admin_ids) 
@@ -187,7 +187,7 @@ async def info(ctx: commands.Context):
     join_server_button = discord.ui.Button(
         label="Tham gia Server Hỗ Trợ",
         style=discord.ButtonStyle.link,
-        url="https://discord.gg/Rgr7vCXwu2"
+        url="https://dsc.gg/servertipacvn"
     )
     view.add_item(join_server_button)
 
