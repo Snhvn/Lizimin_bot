@@ -6,6 +6,8 @@ import os
 import json
 import requests # Cần import requests để tương tác với URL website
 
+TOKEN= '' # Dán token của bạn vào giữa hai dấu '
+
 # --- Cấu hình Bot Discord ---
 intents = discord.Intents.default()
 intents.message_content = True # Rất quan trọng cho Prefix Commands
@@ -1154,7 +1156,5 @@ async def listadm(ctx: commands.Context):
     
     await ctx.send(embed=embed_list)
 
-
-# --- Chạy Bot ---
-# Thay thế "YOUR_BOT_TOKEN" bằng token Discord bot của bạn
-bot.run("MTM3NTU2NTE0MDUyMjcwMDgxMA.GNMBg0.Ged9_D6dlNQK8O2e-UHD0GAb73L6T9zlB-EYvM")
+# CHẠY BOT
+bot.run(TOKEN)
