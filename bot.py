@@ -10,7 +10,7 @@ import threading
 import asyncio
 from flask import Flask
 # ---- Token bot của bạn ---
-TOKEN = os.getenv("DISCORD_TOKEN")
+TOKEN = '' #Nhập token
 
 # --- Cấu hình Bot Discord ---
 intents = discord.Intents.default()
