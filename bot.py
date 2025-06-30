@@ -106,7 +106,7 @@ valid_keys = load_data_from_url(VALID_KEYS_URL, set)
 
 
 # ĐẶT ID DISCORD CỦA BẠN VÀO ĐÂY ĐỂ LÀM ADMIN CHÍNH
-MAIN_ADMIN_ID = 1375561305553109110 # Thay thế bằng ID của bạn
+MAIN_ADMIN_ID = 882844895902040104 # Thay thế bằng ID của bạn
 if MAIN_ADMIN_ID not in admin_ids:
     admin_ids.add(MAIN_ADMIN_ID)
     # Lưu lại admin_ids sau khi thêm admin chính nếu nó chưa có
